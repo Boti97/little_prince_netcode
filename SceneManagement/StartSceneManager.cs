@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class StartSceneManager : NetworkBehaviour
 {
@@ -44,7 +45,14 @@ public class StartSceneManager : NetworkBehaviour
         GameObject.Find("HostButton").GetComponent<Button>().interactable = false;
         GameObject.Find("BackButton").GetComponent<Button>().interactable = false;
         GameObject.FindWithTag("NewRoomNameInputField").GetComponent<TMP_InputField>().interactable = false;
-        //BoltLauncher.StartServer();
+        SceneNetworkData.choosenJoinMode = SceneNetworkData.JoinMode.HOST;
+        SceneManager.LoadScene("Game");
+    }
+
+    public void OnClickJoin()
+    {
+        SceneNetworkData.choosenJoinMode = SceneNetworkData.JoinMode.CLIENT;
+        SceneManager.LoadScene("Game");
     }
 
     //public override void BoltStartDone()
@@ -128,10 +136,10 @@ public class StartSceneManager : NetworkBehaviour
         }
     }
 
-    //private void OnClickJoinGame(PhotonSession photonSession)
-    //{
-    //    BoltMatchmaking.JoinSession(photonSession);
-    //}
+    private void OnClickJoinGame()
+    {
+        //BoltMatchmaking.JoinSession(photonSession);
+    }
 
     private void ClearRooms()
     {

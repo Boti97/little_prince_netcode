@@ -1,7 +1,8 @@
+using Unity.Netcode;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class ServerEventListener
+public class ServerEventListener : NetworkBehaviour
 {
     ////if a player dies and no more than one player remains, the game is over
     //public override void OnEvent(PlayerDiedEvent evnt)

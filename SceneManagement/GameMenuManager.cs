@@ -2,7 +2,7 @@ using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public class GameMenuManager
+public class GameMenuManager : NetworkBehaviour
 {
     [SerializeField]
     private GameObject menu;
@@ -19,12 +19,12 @@ public class GameMenuManager
 
     public void OnExitClick()
     {
-        Debug.LogError("Exit click is not implemented!");
-        //if (NetworkManager. && !GameObjectManager.Instance.IsGameOver() && GameObjectManager.Instance.IsOwnedPlayerAlive())
-        //{
-        //    EventManager.Instance.SendPlayerDiedEvent(GameObjectManager.Instance.GetOwnedPlayerId());
-        //}
-        //SceneManager.LoadScene("Start");
+        if (NetworkManager.Singleton.IsListening && !GameObjectManager.Instance.IsGameOver() && GameObjectManager.Instance.IsOwnedPlayerAlive())
+        {
+            Debug.LogError("Exit click event is not implemented!");
+            //EventManager.Instance.SendPlayerDiedEvent(GameObjectManager.Instance.GetOwnedPlayerId());
+        }
+        SceneManager.LoadScene("Start");
         //BoltLauncher.Shutdown();
     }
 

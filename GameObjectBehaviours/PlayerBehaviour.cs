@@ -123,7 +123,7 @@ public class PlayerBehaviour : CharacterBehaviour
 
     protected override void HandleAttack()
     {
-        Debug.LogError("Player attack is not implemented!");
+        Debug.LogWarning("Player attack is not implemented!");
         //if (Input.GetMouseButtonDown(0))
         //{
         //    GameObjectManager.Instance.Players.ForEach(player =>
@@ -151,7 +151,7 @@ public class PlayerBehaviour : CharacterBehaviour
             if (characterNetworkState.Health < 0f)
             {
                 //TODO: implement death
-                Debug.LogError("Player death is not implemented!");
+                Debug.LogWarning("Player death is not implemented!");
                 GameObjectManager.Instance.CinemachineVirtualCamera.gameObject.SetActive(false);
                 //EventManager.Instance.SendPlayerDiedEvent(GetGuid());
             }

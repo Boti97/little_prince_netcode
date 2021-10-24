@@ -4,10 +4,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 
-public abstract class CharacterNetworkState : NetworkBehaviour
+public class CharacterNetworkState : NetworkBehaviour
 {
     private NetworkVariable<Quaternion> modelRotation = new NetworkVariable<Quaternion>();
-    private NetworkVariable<Vector3> characterPosition = new NetworkVariable<Vector3>();
     private NetworkVariable<float> health = new NetworkVariable<float>(1f);
     private NetworkVariable<int> isGrounded = new NetworkVariable<int>();
     private NetworkVariable<int> isWalking = new NetworkVariable<int>();
@@ -30,7 +29,6 @@ public abstract class CharacterNetworkState : NetworkBehaviour
         model = transform.Find("Model");
 
         modelRotation.OnValueChanged += OnModelRotationChanged;
-        characterPosition.OnValueChanged += OnCharacterPositionChanged;
         health.OnValueChanged += OnHealthChanged;
         isGrounded.OnValueChanged += OnIsGroundedChanged;
         isWalking.OnValueChanged += OnIsWalkingChanged;
@@ -42,7 +40,6 @@ public abstract class CharacterNetworkState : NetworkBehaviour
         if (!IsClient) { return; }
 
         modelRotation.OnValueChanged -= OnModelRotationChanged;
-        characterPosition.OnValueChanged -= OnCharacterPositionChanged;
         health.OnValueChanged -= OnHealthChanged;
         isGrounded.OnValueChanged -= OnIsGroundedChanged;
         isWalking.OnValueChanged -= OnIsWalkingChanged;
@@ -57,14 +54,6 @@ public abstract class CharacterNetworkState : NetworkBehaviour
         //TODO: implement checks
 
         modelRotation.Value = rotation;
-    }
-
-    [ServerRpc]
-    public void SetCharacterPositionServerRpc(Vector3 position)
-    {
-        //TODO: implement checks
-
-        characterPosition.Value = position;
     }
 
     [ServerRpc]
@@ -93,13 +82,6 @@ public abstract class CharacterNetworkState : NetworkBehaviour
                 isJumped.Value = value;
                 break;
         };
-    }
-
-    private void OnCharacterPositionChanged(Vector3 oldCharacterPosition, Vector3 newCharacterPosition)
-    {
-        if (!IsClient) { return; }
-
-        transform.position = newCharacterPosition;
     }
 
     private void OnModelRotationChanged(Quaternion oldModelRotation, Quaternion newModelRotation)

@@ -1,17 +1,18 @@
+using Unity.Netcode;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class ClientEventListener
+public class ClientEventListener : NetworkBehaviour
 {
     //private float lastHitTime = 0f;
-
+    //
     //public override void OnEvent(GameOverEvent evnt)
     //{
     //    GameObjectManager.Instance.CinemachineVirtualCamera.gameObject.SetActive(false);
     //    GameObjectManager.Instance.GameOverText.SetActive(true);
     //}
-
+    //
     //public override void OnEvent(CharacterPushedEvent evnt)
     //{
     //    if (GameObjectManager.Instance.IsPlayerOwned(evnt.PushedCharacterId))
@@ -23,7 +24,7 @@ public class ClientEventListener
     //            pushedPlayer
     //                .GetComponent<Rigidbody>()
     //                .AddForce(evnt.PushDirection * evnt.PushPower);
-
+    //
     //            lastHitTime = BoltNetwork.Time;
     //        }
     //    }

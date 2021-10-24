@@ -1,3 +1,4 @@
+using Unity.Netcode;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -11,7 +12,7 @@ public class GameSceneManager : MonoBehaviour
     private GameObject playerPrefab;
 
     [SerializeField]
-    private GameObject planetPrefab;
+    private NetworkObject planetPrefab;
 
     [SerializeField]
     private GameObject planetObjectPrefab;
@@ -31,22 +32,60 @@ public class GameSceneManager : MonoBehaviour
     [SerializeField]
     private int baseSeed;
 
-    private void Awake()
+    public void Start()
     {
         //Cursor.lockState = CursorLockMode.Confined;
         //Cursor.visible = false;
+        NetworkManager.Singleton.OnServerStarted += HandleServerStarted;
+        NetworkManager.Singleton.OnClientConnectedCallback += HandleClientConnected;
+        NetworkManager.Singleton.OnClientDisconnectCallback += HandleClientDisconnect;
+
+        if (SceneNetworkData.choosenJoinMode.Equals(SceneNetworkData.JoinMode.HOST))
+        {
+            NetworkManager.Singleton.StartHost();
+        }
+        else
+        {
+            NetworkManager.Singleton.StartClient();
+        }
     }
 
-    //public override void SceneLoadLocalDone(string scene, IProtocolToken protocolToken)
-    //{
-    //    if (BoltNetwork.IsServer)
-    //    {
-    //        CreateSolarSystem();
-    //        //SpawnEnemiesAndObjectives();
-    //    }
+    public void OnDestroy()
+    {
+        if (NetworkManager.Singleton == null) { return; }
 
-    //    StartCoroutine(SpawnPlayer());
-    //}
+        NetworkManager.Singleton.OnServerStarted -= HandleServerStarted;
+        NetworkManager.Singleton.OnClientConnectedCallback -= HandleClientConnected;
+        NetworkManager.Singleton.OnClientDisconnectCallback -= HandleClientDisconnect;
+    }
+
+    private void HandleServerStarted()
+    {
+        if (NetworkManager.Singleton.IsHost)
+        {
+            CreateSolarSystem();
+            HandleClientConnected(NetworkManager.Singleton.ServerClientId);
+        }
+
+        //StartCoroutine(SpawnPlayer());
+    }
+
+    private void HandleClientConnected(ulong clientId)
+    {
+        if (clientId == NetworkManager.Singleton.LocalClientId)
+        {
+
+        }
+    }
+
+    private void HandleClientDisconnect(ulong clientId)
+    {
+        if (clientId == NetworkManager.Singleton.LocalClientId)
+        {
+
+        }
+    }
+
 
     private void SpawnEnemiesAndObjectives()
     {
@@ -118,17 +157,18 @@ public class GameSceneManager : MonoBehaviour
         Random.InitState(baseSeed);
 
         List<Vector3> planetPositions = GetPlanetPositions();
-        List<GameObject> planetSurfaces = GetPlanetSurfaces(planetPositions.Count);
+        //List<GameObject> planetSurfaces = GetPlanetSurfaces(planetPositions.Count);
 
         //foreach (var planetPosition in GetPlanetPositions())
         //{
         //    BoltNetwork.Instantiate(planetPrefab, planetPosition, UnityEngine.Random.rotation);
         //}
+        NetworkObject planet = Instantiate(planetPrefab, new Vector3(-50f, 0f, 0f), Quaternion.identity);
+        planet.SpawnWithOwnership(NetworkManager.Singleton.ServerClientId);
 
-
-        SetUpPlanetSurfaceComponents(planetSurfaces, new List<GameObject>());
-
-        InitiatePlanetObjects(planetPositions, planetSurfaces);
+        //SetUpPlanetSurfaceComponents(planetSurfaces, new List<GameObject>());
+        //
+        //InitiatePlanetObjects(planetPositions, planetSurfaces);
 
 
         // Todo: more complex planet placement

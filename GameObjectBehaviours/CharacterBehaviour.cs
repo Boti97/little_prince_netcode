@@ -108,7 +108,7 @@ public abstract class CharacterBehaviour : NetworkBehaviour
             model.rotation = Quaternion.Slerp(model.rotation, targetRotation, turnSmoothTime * Time.deltaTime);
             GetComponent<Rigidbody>().MovePosition(GetComponent<Rigidbody>().position + (finalDir * moveSpeed) * Time.deltaTime);
 
-            characterNetworkState.SetCharacterPositionServerRpc(transform.position);
+            //characterNetworkState.SetCharacterPositionServerRpc(transform.position);
             characterNetworkState.SetModelRotationServerRpc(model.rotation);
 
             isMoving = true;
