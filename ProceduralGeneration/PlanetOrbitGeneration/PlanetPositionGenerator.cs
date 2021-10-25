@@ -1,45 +1,41 @@
-﻿using Assets.Scripts;
-using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using Assets.Scripts;
 using UnityEngine;
 using static BaseFunctionValueGenerator;
-using Random = UnityEngine.Random;
 
 public class PlanetPositionGenerator : MonoBehaviour
 {
-    [SerializeField]
-    private Camera localCamera;
+    [SerializeField] private Camera localCamera;
 
-    [SerializeField]
-    private float planetDensity;
-
-    private int lineRendererDivisionNum;
+    [SerializeField] private float planetDensity;
     private int baseCircleRadius;
-    private float noiseSeed;
-    private float noiseAmplitude;
-    private float noiseRoughness;
 
     private LineRenderer functionView;
 
-    public List<Vector3> GeneratePlanetPositions()
+    private int lineRendererDivisionNum;
+    private float noiseAmplitude;
+    private float noiseRoughness;
+    private float noiseSeed;
+
+    public List<Vector3> GeneratePlanetPositions(int baseSeed)
     {
-        GenerateInput();
+        GenerateInput(baseSeed);
 
         SetupFieldValues();
 
         CreateFunctionRepresentation();
 
-        List<Vector3> planetPositions = PlanetPositionFinder.FindPlanetPositions(functionView, lineRendererDivisionNum, planetDensity);
+        List<Vector3> planetPositions =
+            PlanetPositionFinder.FindPlanetPositions(functionView, lineRendererDivisionNum, planetDensity);
 
         Destroy(functionView.gameObject);
 
         return planetPositions;
     }
 
-    private void GenerateInput()
+    private void GenerateInput(int baseSeed)
     {
-        //seed was set in GameSceneManager
+        Random.InitState(baseSeed);
         Debug.Log("Input Base Seed: " + Random.seed);
 
         noiseSeed = Random.Range(0f, 5f);

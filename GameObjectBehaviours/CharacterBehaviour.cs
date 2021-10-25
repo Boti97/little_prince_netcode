@@ -1,70 +1,47 @@
 ﻿using Unity.Netcode;
-using System;
-using System.Collections;
 using UnityEngine;
 
 public abstract class CharacterBehaviour : NetworkBehaviour
 {
     //basic objects
-    [HideInInspector]
-    public ulong planetId;
-    protected Animator animator;
-    private Transform model;
-    protected GravityBody gravityBody;
-    protected Transform parent;
+    [HideInInspector] public ulong planetId;
     //private Vector3 previousParentPos;
     //private Vector3 deltaParentPos;
 
     //variables for thrust
-    [SerializeField]
-    protected float thrustPower = 50f;
-    protected float thrust = 1f;
+    [SerializeField] protected float thrustPower = 50f;
 
     //variables for attack
-    [SerializeField]
-    protected float attackPower = 1000f;
+    [SerializeField] protected float attackPower = 1000f;
 
     //variables for movement
-    [SerializeField]
-    protected float sprintSpeed = 30f;
-    [SerializeField]
-    protected float walkSpeed = 0f;
-    protected float stamina = 1f;
-    protected float moveSpeed = 8f;
-    protected Vector3 moveDir;
-    protected Vector3 finalDir;
-    private readonly float turnSmoothTime = 8f;
-    protected bool isMoving;
+    [SerializeField] protected float sprintSpeed = 30f;
+    [SerializeField] protected float walkSpeed = 0f;
 
     //variables for jump
-    [SerializeField]
-    protected float jumpForce = 2200f;
-    [SerializeField]
-    protected LayerMask groundedMask;
-    protected int numberOfJumps = 0;
-
-    //state indicators
-    protected bool isJumpEnabled;
-    protected bool isGrounded;
-    protected bool isJumping;
+    [SerializeField] protected float jumpForce = 2200f;
+    [SerializeField] protected LayerMask groundedMask;
+    private readonly float turnSmoothTime = 8f;
+    protected Animator animator;
 
     //network state
     protected CharacterNetworkState characterNetworkState;
+    protected Vector3 finalDir;
+    protected GravityBody gravityBody;
+    protected bool isGrounded;
 
-    public override void OnNetworkSpawn()
-    {
-        if (!IsOwner) return;
+    //state indicators
+    protected bool isJumpEnabled;
+    protected bool isJumping;
+    protected bool isMoving;
+    private Transform model;
+    protected Vector3 moveDir;
+    protected float moveSpeed = 8f;
+    protected int numberOfJumps = 0;
 
-        animator = GetComponentInChildren<Animator>();
-        gravityBody = GetComponent<GravityBody>();
-        model = transform.Find("Model");
-
-        characterNetworkState = transform.GetComponent<CharacterNetworkState>();
-
-        InitializeCharacterSpecificFields();
-
-        SetAnimation("isWalking", 0);
-    }
+    protected Transform parent;
+    protected float stamina = 1f;
+    protected float thrust = 1f;
 
     protected void Update()
     {
@@ -106,7 +83,8 @@ public abstract class CharacterBehaviour : NetworkBehaviour
             //TODO: might be needed a network delta time
             Quaternion targetRotation = Quaternion.LookRotation(finalDir, transform.up);
             model.rotation = Quaternion.Slerp(model.rotation, targetRotation, turnSmoothTime * Time.deltaTime);
-            GetComponent<Rigidbody>().MovePosition(GetComponent<Rigidbody>().position + (finalDir * moveSpeed) * Time.deltaTime);
+            GetComponent<Rigidbody>()
+                .MovePosition(GetComponent<Rigidbody>().position + (finalDir * moveSpeed) * Time.deltaTime);
 
             //characterNetworkState.SetCharacterPositionServerRpc(transform.position);
             characterNetworkState.SetModelRotationServerRpc(model.rotation);
@@ -119,6 +97,21 @@ public abstract class CharacterBehaviour : NetworkBehaviour
 
             isMoving = false;
         }
+    }
+
+    public override void OnNetworkSpawn()
+    {
+        if (!IsOwner) return;
+
+        animator = GetComponentInChildren<Animator>();
+        gravityBody = GetComponent<GravityBody>();
+        model = transform.Find("Model");
+
+        characterNetworkState = transform.GetComponent<CharacterNetworkState>();
+
+        InitializeCharacterSpecificFields();
+
+        SetAnimation("isWalking", 0);
     }
 
     protected abstract void CalculateMovingDirection();
@@ -167,9 +160,9 @@ public abstract class CharacterBehaviour : NetworkBehaviour
         Ray ray = new Ray(transform.position, -transform.up);
         if (Physics.Raycast(ray, out RaycastHit hit, 2 + .1f, groundedMask))
         {
-            if (hit.collider.gameObject.GetComponentInParent<PlanetNetworkState>().NetworkObjectId != planetId)
+            if (hit.collider.gameObject.GetComponentInParent<NetworkObject>().NetworkObjectId != planetId)
             {
-                planetId = hit.collider.gameObject.GetComponentInParent<PlanetNetworkState>().NetworkObjectId;
+                planetId = hit.collider.gameObject.GetComponentInParent<NetworkObject>().NetworkObjectId;
             }
         }
     }

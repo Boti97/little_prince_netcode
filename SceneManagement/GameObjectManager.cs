@@ -1,27 +1,26 @@
-using Cinemachine;
-using System;
 using System.Collections;
 using System.Collections.Generic;
+using Cinemachine;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UI;
 
 public sealed class GameObjectManager : MonoBehaviour
 {
-    [SerializeField]
-    private GameObject headstonePrefab;
-
-    private Slider staminaBar;
-    private Slider healthBar;
-    private Slider thrustBar;
-    private GameObject gameOverText;
-    private GameObject sun;
-    private CinemachineFreeLook cinemachineVirtualCamera;
-    private List<GameObject> planets;
-    private List<GameObject> players;
-    private List<GameObject> enemies;
-
     private static readonly object padlock = new object();
     private static GameObjectManager instance = null;
+    [SerializeField] private GameObject headstonePrefab;
+    private CinemachineFreeLook cinemachineVirtualCamera;
+    private List<GameObject> enemies;
+    private GameObject gameOverText;
+    private Slider healthBar;
+    private List<GameObject> planets;
+    private List<GameObject> players;
+
+    private Slider staminaBar;
+    private GameObject sun;
+    private Slider thrustBar;
+    private GameObject youWonText;
 
     public static GameObjectManager Instance
     {
@@ -33,20 +32,71 @@ public sealed class GameObjectManager : MonoBehaviour
                 {
                     instance = new GameObjectManager();
                 }
+
                 return instance;
             }
         }
     }
 
-    public Slider StaminaBar { get => staminaBar; set => staminaBar = value; }
-    public Slider HealthBar { get => healthBar; set => healthBar = value; }
-    public GameObject GameOverText { get => gameOverText; set => gameOverText = value; }
-    public CinemachineFreeLook CinemachineVirtualCamera { get => cinemachineVirtualCamera; set => cinemachineVirtualCamera = value; }
-    public Slider ThrustBar { get => thrustBar; set => thrustBar = value; }
-    public List<GameObject> Planets { get => planets; set => planets = value; }
-    public List<GameObject> Players { get => players; set => players = value; }
-    public List<GameObject> Enemies { get => enemies; set => enemies = value; }
-    public GameObject Sun { get => sun; set => sun = value; }
+    public Slider StaminaBar
+    {
+        get => staminaBar;
+        set => staminaBar = value;
+    }
+
+    public Slider HealthBar
+    {
+        get => healthBar;
+        set => healthBar = value;
+    }
+
+    public GameObject GameOverText
+    {
+        get => gameOverText;
+        set => gameOverText = value;
+    }
+
+    public GameObject YouWonText
+    {
+        get => youWonText;
+        set => youWonText = value;
+    }
+
+    public CinemachineFreeLook CinemachineVirtualCamera
+    {
+        get => cinemachineVirtualCamera;
+        set => cinemachineVirtualCamera = value;
+    }
+
+    public Slider ThrustBar
+    {
+        get => thrustBar;
+        set => thrustBar = value;
+    }
+
+    public List<GameObject> Planets
+    {
+        get => planets;
+        set => planets = value;
+    }
+
+    public List<GameObject> Players
+    {
+        get => players;
+        set => players = value;
+    }
+
+    public List<GameObject> Enemies
+    {
+        get => enemies;
+        set => enemies = value;
+    }
+
+    public GameObject Sun
+    {
+        get => sun;
+        set => sun = value;
+    }
 
     public void Awake()
     {
@@ -66,7 +116,9 @@ public sealed class GameObjectManager : MonoBehaviour
         ThrustBar = GameObject.FindGameObjectWithTag("ThrustBar").GetComponent<Slider>();
         HealthBar = GameObject.FindGameObjectWithTag("HealthBar").GetComponent<Slider>();
         GameOverText = GameObject.FindGameObjectWithTag("GameOver");
-        CinemachineVirtualCamera = GameObject.FindGameObjectWithTag("ThirdPersonCamera").GetComponent<CinemachineFreeLook>();
+        YouWonText = GameObject.FindGameObjectWithTag("YouWon");
+        CinemachineVirtualCamera =
+            GameObject.FindGameObjectWithTag("ThirdPersonCamera").GetComponent<CinemachineFreeLook>();
 
         Planets = new List<GameObject>();
         Planets.AddRange(GameObject.FindGameObjectsWithTag("Planet"));
@@ -90,6 +142,16 @@ public sealed class GameObjectManager : MonoBehaviour
         Players.AddRange(GameObject.FindGameObjectsWithTag("Player"));
     }
 
+    public IEnumerator RefreshPlayersCoroutine()
+    {
+        Players.Clear();
+        while (Players.Count.Equals(0))
+        {
+            yield return new WaitForSeconds(1f);
+            Players.AddRange(GameObject.FindGameObjectsWithTag("Player"));
+        }
+    }
+
     public void RemovePlayer(ulong playerNetworkId)
     {
         GameObject deadPlayer = GetPlayerById(playerNetworkId);
@@ -105,17 +167,23 @@ public sealed class GameObjectManager : MonoBehaviour
 
     public GameObject GetPlayerById(ulong id)
     {
-        return Players.Find(player => player.GetComponent<CharacterNetworkState>().NetworkObjectId == id);
+        return Players.Find(player => player.GetComponent<NetworkObject>().NetworkObjectId == id);
+    }
+
+    public GameObject GetOwnedPlayerById(ulong ownerId)
+    {
+        return Players.Find(player => player.GetComponent<NetworkObject>().OwnerClientId == ownerId);
     }
 
     public ulong GetOwnedPlayerId()
     {
-        return Players.Find(player => player.GetComponent<CharacterNetworkState>().IsOwner).GetComponent<CharacterNetworkState>().NetworkObjectId;
+        return Players.Find(player => player.GetComponent<NetworkObject>().IsOwner)
+            .GetComponent<CharacterNetworkState>().NetworkObjectId;
     }
 
     public bool IsOwnedPlayerAlive()
     {
-        return Players.Find(player => player.GetComponent<CharacterNetworkState>().IsOwner) != null;
+        return Players.Find(player => player.GetComponent<NetworkObject>().IsOwner) != null;
     }
 
     public List<GameObject> FindPlayersOnPlanet(ulong planetId)
@@ -170,7 +238,14 @@ public sealed class GameObjectManager : MonoBehaviour
 
     public GameObject GetPlanetById(ulong planetNetworkId)
     {
-        return Planets.Find(planet => planet.GetComponent<PlanetNetworkState>().NetworkObjectId == planetNetworkId);
+        return Planets.Find(planet => planet.GetComponent<NetworkObject>().NetworkObjectId == planetNetworkId);
+    }
+
+    public List<Vector3> GetPlanetPositions()
+    {
+        List<Vector3> planetPositions = new List<Vector3>();
+        Planets.ForEach(planet => planetPositions.Add(planet.transform.position));
+        return planetPositions;
     }
 
     //----------------------------------- OTHER METHODS -----------------------------------
@@ -183,5 +258,6 @@ public sealed class GameObjectManager : MonoBehaviour
     private void DeactivateUnnecessaryGameObjects()
     {
         GameOverText.SetActive(false);
+        YouWonText.SetActive(false);
     }
 }

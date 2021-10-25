@@ -1,15 +1,11 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using Random = UnityEngine.Random;
 
 public class ColorPaletteGenerator
 {
     public List<Color> GenerateColorPalette(int sizeOfColorPalette)
     {
         List<Color> colorPalette = new List<Color>();
-        Debug.Log(Random.seed);
         for (int i = 0; i < sizeOfColorPalette; i++)
         {
             colorPalette.Add(GenerateRandomButLimitedColor());

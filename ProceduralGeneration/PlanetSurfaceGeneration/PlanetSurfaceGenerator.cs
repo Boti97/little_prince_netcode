@@ -1,43 +1,42 @@
-
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using TMPro;
-using Random = UnityEngine.Random;
 using static ShapeSettings;
+using Random = UnityEngine.Random;
 
 public class PlanetSurfaceGenerator : MonoBehaviour
 {
-    public int planetMinRange;
-    public int planetMaxRange;
+    public float planetMinRange;
+    public float planetMaxRange;
     public Shader planetShader;
     public List<Color> colorPalette;
     public List<int> planetSeeds = new List<int>();
-
-    private ShapeSettings shapeSettings;
-
-    [Range(2, 256)]
-    private int resolution = 100;
-    private int planetSeed;
-
-    private List<GameObject> planets = new List<GameObject>();
-
-    private MeshFilter[] meshFilters;
-    private TerrainFace[] terrainFaces;
-    private ShapeGenerator shapeGenerator = new ShapeGenerator();
     private ColorGenerator colorGenerator = new ColorGenerator();
 
     private Gradient currentGradient;
 
-    private Vector3[] directions = { Vector3.up, Vector3.down, Vector3.left, Vector3.right, Vector3.forward, Vector3.back };
-    private String[] directionStrings = { "Up", "Down", "Left", "Right", "Forward", "Back" };
+    private Vector3[] directions =
+        {Vector3.up, Vector3.down, Vector3.left, Vector3.right, Vector3.forward, Vector3.back};
+
+    private String[] directionStrings = {"Up", "Down", "Left", "Right", "Forward", "Back"};
+
+    private MeshFilter[] meshFilters;
+
+    private List<GameObject> planets = new List<GameObject>();
+    private int planetSeed;
+
+    [Range(2, 256)] private int resolution = 100;
+    private ShapeGenerator shapeGenerator = new ShapeGenerator();
+
+    private ShapeSettings shapeSettings;
+    private TerrainFace[] terrainFaces;
 
     public List<GameObject> GeneratePlanets(int numberOfPlanets, int baseSeed)
     {
-        this.colorPalette = new ColorPaletteGenerator().GenerateColorPalette(colorPalette.Count);
         //set base seed
         Random.InitState(baseSeed);
+
+        this.colorPalette = new ColorPaletteGenerator().GenerateColorPalette(colorPalette.Count);
         for (int i = 0; i < numberOfPlanets; i++)
         {
             planetSeed = Random.Range(0, 10000);
@@ -47,6 +46,7 @@ public class PlanetSurfaceGenerator : MonoBehaviour
             GenerateInput();
             planets.Add(GeneratePlanet(i));
         }
+
         //set base seed back
         Random.InitState(baseSeed);
         return planets;
@@ -121,6 +121,7 @@ public class PlanetSurfaceGenerator : MonoBehaviour
                 noiseLayer.useFirstLayerAsMask = true;
                 noiseSettings.baseRoughness = Random.Range(1f, 3f);
             }
+
             noiseSettings.noiseCenter = new Vector3(Random.Range(0f, 1f), Random.Range(0f, 1f), Random.Range(0f, 1f));
         }
     }
@@ -175,6 +176,10 @@ public class PlanetSurfaceGenerator : MonoBehaviour
         Initialize(planet, number, planetMaterial);
         planet.AddComponent<MeshFilter>().mesh.CombineMeshes(GenerateMeshes());
         planet.AddComponent<MeshRenderer>().material = planetMaterial;
+        planet.AddComponent<MeshCollider>();
+
+        //ground layer
+        planet.layer = 8;
 
         colorGenerator.UpdateElevation(planetMaterial, shapeGenerator.ElevationMinMax);
         colorGenerator.UpdateColors(planetMaterial, currentGradient);
@@ -206,6 +211,7 @@ public class PlanetSurfaceGenerator : MonoBehaviour
                 meshFilters[i] = meshObj.AddComponent<MeshFilter>();
                 meshFilters[i].sharedMesh = new Mesh();
             }
+
             meshFilters[i].GetComponent<MeshRenderer>().material = material;
             terrainFaces[i] = new TerrainFace(meshFilters[i].sharedMesh, directions[i], resolution, shapeGenerator);
         }
@@ -219,6 +225,7 @@ public class PlanetSurfaceGenerator : MonoBehaviour
             combineInstances[i].mesh = terrainFaces[i].ConstructMesh();
             combineInstances[i].transform = meshFilters[i].transform.localToWorldMatrix;
         }
+
         return combineInstances;
     }
 }

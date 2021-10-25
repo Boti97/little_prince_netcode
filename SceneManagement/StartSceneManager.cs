@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
-public class StartSceneManager : NetworkBehaviour
+public class StartSceneManager : MonoBehaviour
 {
     [SerializeField]
     private GameObject backFromJoiningGameButton;

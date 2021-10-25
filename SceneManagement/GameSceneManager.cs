@@ -1,91 +1,142 @@
-using Unity.Netcode;
-using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Reflection;
+using Unity.Netcode;
 using UnityEngine;
-using Random = UnityEngine.Random;
 
-public class GameSceneManager : MonoBehaviour
+public class GameSceneManager : NetworkBehaviour
 {
-    [SerializeField]
-    private GameObject playerPrefab;
+    [SerializeField] private NetworkObject planetPrefab;
+    [SerializeField] private GameObject leadSoldierPrefab;
+    [SerializeField] private GameObject objectivePrefab;
+    [SerializeField] private float solarSystemRadius;
 
-    [SerializeField]
-    private NetworkObject planetPrefab;
-
-    [SerializeField]
-    private GameObject planetObjectPrefab;
-
-    [SerializeField]
-    private GameObject leadSoldierPrefab;
-
-    [SerializeField]
-    private GameObject sunPrefab;
-
-    [SerializeField]
-    private GameObject objectivePrefab;
-
-    [SerializeField]
-    private float solarSystemRadius;
-
-    [SerializeField]
-    private int baseSeed;
+    [SerializeField] private int baseSeed;
+    private ServerNetworkState serverNetworkState;
 
     public void Start()
     {
         //Cursor.lockState = CursorLockMode.Confined;
         //Cursor.visible = false;
+
+        serverNetworkState = transform.GetComponent<ServerNetworkState>();
+
         NetworkManager.Singleton.OnServerStarted += HandleServerStarted;
         NetworkManager.Singleton.OnClientConnectedCallback += HandleClientConnected;
         NetworkManager.Singleton.OnClientDisconnectCallback += HandleClientDisconnect;
 
         if (SceneNetworkData.choosenJoinMode.Equals(SceneNetworkData.JoinMode.HOST))
         {
-            NetworkManager.Singleton.StartHost();
+            StartCoroutine(StartHost());
         }
         else
         {
-            NetworkManager.Singleton.StartClient();
+            StartCoroutine(StartClient());
         }
     }
 
     public void OnDestroy()
     {
-        if (NetworkManager.Singleton == null) { return; }
+        if (NetworkManager.Singleton == null) return;
 
         NetworkManager.Singleton.OnServerStarted -= HandleServerStarted;
         NetworkManager.Singleton.OnClientConnectedCallback -= HandleClientConnected;
         NetworkManager.Singleton.OnClientDisconnectCallback -= HandleClientDisconnect;
     }
 
+    private IEnumerator StartHost()
+    {
+        //TODO: implement
+        yield return new WaitForSeconds(0f);
+        NetworkManager.Singleton.StartHost();
+    }
+
+    private IEnumerator StartClient()
+    {
+        //TODO: implement
+        yield return new WaitForSeconds(0f);
+        NetworkManager.Singleton.StartClient();
+    }
+
     private void HandleServerStarted()
     {
-        if (NetworkManager.Singleton.IsHost)
+        if (!NetworkManager.Singleton.IsHost)
         {
-            CreateSolarSystem();
-            HandleClientConnected(NetworkManager.Singleton.ServerClientId);
+            return;
         }
 
-        //StartCoroutine(SpawnPlayer());
+        //create new random seed
+        baseSeed = Random.Range(0, 100000);
+        //send new seed to server
+        serverNetworkState.SetRoomSeedServerRpc(baseSeed);
+
+        //generate planet positions, and planet surfaces
+        var planetPositions = GetPlanetPositions();
+        var planetSurfaces = GetPlanetSurfaces(planetPositions.Count);
+
+        InitiatePlanetObjects(planetPositions);
+
+        GameObjectManager.Instance.RefreshPlanets();
+
+        //add name and surface to planets
+        SetUpPlanets(GameObjectManager.Instance.Planets, planetSurfaces);
+
+        SetPlayerLocation();
     }
 
     private void HandleClientConnected(ulong clientId)
     {
-        if (clientId == NetworkManager.Singleton.LocalClientId)
+        if (NetworkManager.Singleton.IsHost)
         {
-
+            return;
         }
+
+        //init randomizer for generation
+        Debug.LogWarning(serverNetworkState.RoomSeed);
+        baseSeed = serverNetworkState.RoomSeed;
+
+        //refresh planets, at this point Netcode should synchronize them already, but without surface
+        GameObjectManager.Instance.RefreshPlanets();
+
+        //generate planet positions, and planet surfaces
+        var planetSurfaces = GetPlanetSurfaces(GameObjectManager.Instance.Planets.Count);
+
+        //add name and surface to planets
+        SetUpPlanets(GameObjectManager.Instance.Planets, planetSurfaces);
+
+        SetPlayerLocation();
     }
 
     private void HandleClientDisconnect(ulong clientId)
     {
-        if (clientId == NetworkManager.Singleton.LocalClientId)
+        if (clientId != NetworkManager.Singleton.LocalClientId)
         {
-
+            if (NetworkManager.Singleton.ConnectedClients.Count == 1 &&
+                NetworkManager.Singleton.ConnectedClients[0].ClientId == NetworkManager.Singleton.LocalClientId)
+            {
+                GameObjectManager.Instance.YouWonText.SetActive(true);
+                GameObjectManager.Instance.CinemachineVirtualCamera.gameObject.SetActive(false);
+            }
         }
     }
 
+    private void SetPlayerLocation()
+    {
+        GameObjectManager.Instance.RefreshPlanets();
+        GameObjectManager.Instance.RefreshPlayers();
+
+        GameObject player = GameObjectManager.Instance.GetOwnedPlayerById(NetworkManager.Singleton.LocalClientId);
+
+        //TODO: change this to random planet, only for debugging purposes
+        //int randomPlanetIndex = UnityEngine.Random.Range(0, GameObjectManager.Instance.Planets.Count - 1);
+        var randomPlanetIndex = 0;
+
+        //GameObjectManager.Instance.RemoveEnemiesOnPlanet(GameObjectManager.Instance.Planets[randomPlanetIndex].GetComponentInChildren<PlanetNetworkState>().PlanetId);
+
+        var spawnPos = GameObjectManager.Instance.Planets[randomPlanetIndex].transform.position;
+        spawnPos.x += 30;
+
+        player.transform.position = spawnPos;
+    }
 
     private void SpawnEnemiesAndObjectives()
     {
@@ -97,7 +148,7 @@ public class GameSceneManager : MonoBehaviour
 
         GameObjectManager.Instance.Planets.ForEach(planet =>
         {
-            int numberOfEnemies = Random.Range(1, 4);
+            var numberOfEnemies = Random.Range(1, 4);
             Vector3 enemySpawnPos;
             Vector3 objectiveSpawnPos;
             if (numberOfEnemies > 0)
@@ -106,12 +157,14 @@ public class GameSceneManager : MonoBehaviour
                 enemySpawnPos.x += 30;
                 //BoltNetwork.Instantiate(leadSoldierPrefab, enemySpawnPos, Quaternion.identity);
             }
+
             if (numberOfEnemies > 1)
             {
                 enemySpawnPos = planet.transform.position;
                 enemySpawnPos.y += 30;
                 //BoltNetwork.Instantiate(leadSoldierPrefab, enemySpawnPos, Quaternion.identity);
             }
+
             if (numberOfEnemies > 2)
             {
                 enemySpawnPos = planet.transform.position;
@@ -119,7 +172,7 @@ public class GameSceneManager : MonoBehaviour
                 //BoltNetwork.Instantiate(leadSoldierPrefab, enemySpawnPos, Quaternion.identity);
             }
 
-            int probabilityOfObjectives = UnityEngine.Random.Range(1, 101);
+            var probabilityOfObjectives = Random.Range(1, 101);
             if (probabilityOfObjectives > 50)
             {
                 objectiveSpawnPos = planet.transform.position;
@@ -139,112 +192,37 @@ public class GameSceneManager : MonoBehaviour
 
         //TODO: change this to random planet, only for debugging purposes
         //int randomPlanetIndex = UnityEngine.Random.Range(0, GameObjectManager.Instance.Planets.Count - 1);
-        int randomPlanetIndex = 0;
+        var randomPlanetIndex = 0;
         //GameObjectManager.Instance.RemoveEnemiesOnPlanet(GameObjectManager.Instance.Planets[randomPlanetIndex].GetComponentInChildren<PlanetNetworkState>().PlanetId);
 
-        Vector3 spawnPos = GameObjectManager.Instance.Planets[randomPlanetIndex].transform.position;
+        var spawnPos = GameObjectManager.Instance.Planets[randomPlanetIndex].transform.position;
         spawnPos.x += 30;
 
         //BoltNetwork.Instantiate(playerPrefab, spawnPos, Quaternion.identity);
     }
 
-    private void CreateSolarSystem()
+    private void InitiatePlanetObjects(List<Vector3> planetPositions)
     {
-        //GameObjectManager.Instance.Sun = BoltNetwork.Instantiate(sunPrefab).gameObject;
-
-        //set random generation seed for recoverability
-        baseSeed = Random.Range(0, 10000);
-        Random.InitState(baseSeed);
-
-        List<Vector3> planetPositions = GetPlanetPositions();
-        //List<GameObject> planetSurfaces = GetPlanetSurfaces(planetPositions.Count);
-
-        //foreach (var planetPosition in GetPlanetPositions())
-        //{
-        //    BoltNetwork.Instantiate(planetPrefab, planetPosition, UnityEngine.Random.rotation);
-        //}
-        NetworkObject planet = Instantiate(planetPrefab, new Vector3(-50f, 0f, 0f), Quaternion.identity);
-        planet.SpawnWithOwnership(NetworkManager.Singleton.ServerClientId);
-
-        //SetUpPlanetSurfaceComponents(planetSurfaces, new List<GameObject>());
-        //
-        //InitiatePlanetObjects(planetPositions, planetSurfaces);
-
-
-        // Todo: more complex planet placement
-        //for (int i = 0; i < planetPositions.Count; i++)
-        //{
-        //    GameObject planetX = BoltNetwork.Instantiate(planetSurfaces[i], planetPositions[i], Random.rotation).gameObject;
-        //}
-
-        GameObjectManager.Instance.RefreshPlanets();
-    }
-
-    private void InitiatePlanetObjects(List<Vector3> planetPositions, List<GameObject> planetSurfaces)
-    {
-        List<GameObject> planetObjects = new List<GameObject>();
-        for (int i = 0; i < planetPositions.Count; i++)
+        for (var i = 0; i < planetPositions.Count; i++)
         {
-            planetPrefab.GetComponentInChildren<MeshFilter>().mesh = planetSurfaces[i].GetComponent<MeshFilter>().mesh;
-            planetPrefab.GetComponentInChildren<MeshRenderer>().material = planetSurfaces[i].GetComponent<MeshRenderer>().material;
-            planetPrefab.GetComponentInChildren<MeshCollider>().sharedMesh = planetSurfaces[i].GetComponent<MeshCollider>().sharedMesh;
-
-            //GameObject planetObj = Instantiate(planetObjectPrefab, planetPositions[i], Random.rotation);
-
-            //GameObject planet = BoltNetwork.Instantiate(planetPrefab, planetPositions[i], Random.rotation);
-
-
-            //planetSurfaces[i].transform.parent = planetObject.transform;
-            //planetSurfaces[i].transform.localPosition = Vector3.zero;
-
-            //planet.name = "Planet" + i;
-
-            ////BoltNetwork.Instantiate(planetObject);
-            //Destroy(planetObj);
-        }
-        foreach (var planetSurf in planetSurfaces)
-        {
-            Destroy(planetSurf);
+            var planet = Instantiate(planetPrefab, planetPositions[i], Quaternion.identity);
+            planet.SpawnWithOwnership(NetworkManager.Singleton.ServerClientId);
         }
     }
 
-    private void SetUpPlanetSurfaceComponents(List<GameObject> planetSurfaces, List<GameObject> planetObjects)
+    private void SetUpPlanets(List<GameObject> planets, List<GameObject> planetSurfaces)
     {
-        for (int i = 0; i < planetSurfaces.Count; i++)
+        for (var i = 0; i < planets.Count; i++)
         {
-            //assaign unique bolt entity to planet
-            //planetSurfaces[i].transform.parent = planetObjects[i].transform;
-            //planetSurfaces[i].transform.localPosition = Vector3.zero;
-
-            //set up planet core
-            //planetCore.GetComponent<SphereCollider>().radius = 10;
-            //planetCore.transform.parent = planetSurfaces[i].transform;
-
-            //set up bolt entity 
-            //BoltEntity source = boltEntityPrefab.GetComponent<BoltEntity>();
-            //BoltEntity target = planets[i].AddComponent<BoltEntity>();
-            //CopyClassValues(source, target);
-
-            //set up network state
-            //planetSurfaces[i].AddComponent<PlanetNetworkState>();
-
-            //set up planet behaviour
-            //planets[i].AddComponent<PlanetBehaviour>();
-
-            //tag planet
-            planetSurfaces[i].tag = "Planet";
-
-            //set Ground layer
-            planetSurfaces[i].layer = 8;
-
-            //add Mesh collider
-            planetSurfaces[i].AddComponent<MeshCollider>();
+            planetSurfaces[i].transform.parent = planets[i].transform;
+            planetSurfaces[i].transform.localPosition = Vector3.zero;
+            planets[i].name = "Planet" + i;
         }
     }
 
     private List<Vector3> GetPlanetPositions()
     {
-        return gameObject.GetComponent<PlanetPositionGenerator>().GeneratePlanetPositions();
+        return gameObject.GetComponent<PlanetPositionGenerator>().GeneratePlanetPositions(baseSeed);
     }
 
     private List<GameObject> GetPlanetSurfaces(int numberOfPlanets)

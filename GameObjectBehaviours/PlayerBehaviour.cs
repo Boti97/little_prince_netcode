@@ -144,7 +144,7 @@ public class PlayerBehaviour : CharacterBehaviour
 
     protected override void CheckHealth()
     {
-        if (gravityBody.AttractorCount() == 0)
+        if (gravityBody.AttractorCount() == 0 && NetworkObject.IsSpawned)
         {
             characterNetworkState.SetHealthServerRpc(characterNetworkState.Health - 0.002f);
             GameObjectManager.Instance.HealthBar.value = characterNetworkState.Health;
