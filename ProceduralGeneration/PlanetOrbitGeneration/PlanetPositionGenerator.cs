@@ -41,7 +41,7 @@ public class PlanetPositionGenerator : MonoBehaviour
         noiseSeed = Random.Range(0f, 5f);
         Debug.Log("Noise Seed: " + noiseSeed);
 
-        baseCircleRadius = Random.Range(500, 1000);
+        baseCircleRadius = Random.Range(300, 500);
         Debug.Log("Base Circle Radius: " + (baseCircleRadius / 1000f));
 
         noiseAmplitude = Random.Range(0.2f, 0.6f) / (baseCircleRadius / 500f);

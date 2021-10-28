@@ -9,7 +9,6 @@ public class GameSceneManager : NetworkBehaviour
     [SerializeField] private GameObject leadSoldierPrefab;
     [SerializeField] private GameObject objectivePrefab;
     [SerializeField] private NetworkObject roomInfoManagerPrefab;
-    [SerializeField] private float solarSystemRadius;
 
     [SerializeField] private int baseSeed;
 

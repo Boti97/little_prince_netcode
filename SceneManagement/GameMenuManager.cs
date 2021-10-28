@@ -1,11 +1,12 @@
+using System.Collections.Generic;
+using System.Linq;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 public class GameMenuManager : NetworkBehaviour
 {
-    [SerializeField]
-    private GameObject menu;
+    [SerializeField] private GameObject menu;
 
     private void Update()
     {
@@ -19,13 +20,25 @@ public class GameMenuManager : NetworkBehaviour
 
     public void OnExitClick()
     {
-        if (NetworkManager.Singleton.IsListening && !GameObjectManager.Instance.IsGameOver() && GameObjectManager.Instance.IsOwnedPlayerAlive())
+        if (NetworkManager.Singleton.IsHost)
         {
-            Debug.LogError("Exit click event is not implemented!");
-            //EventManager.Instance.SendPlayerDiedEvent(GameObjectManager.Instance.GetOwnedPlayerId());
+            List<ulong> clientIds = NetworkManager.Singleton.ConnectedClients.Keys.ToList();
+            foreach (var clientId in clientIds)
+            {
+                if (clientId != NetworkManager.Singleton.LocalClientId)
+                {
+                    NetworkManager.Singleton.DisconnectClient(clientId);
+                }
+            }
+
+            NetworkManager.Singleton.Shutdown();
         }
+        else
+        {
+            RoomInfoManager.Instance.DecreaseNumberOfLivePlayers(NetworkManager.Singleton.LocalClientId);
+        }
+
         SceneManager.LoadScene("Start");
-        //BoltLauncher.Shutdown();
     }
 
     public void OnResumeClick()
