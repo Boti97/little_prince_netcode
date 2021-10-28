@@ -4,17 +4,16 @@ using UnityEngine;
 
 public class EnemyBehaviour : CharacterBehaviour
 {
-    [SerializeField]
-    private float pushPower;
-    [SerializeField]
-    private float pushPowerAmplifier;
+    [SerializeField] private float pushPower;
+    [SerializeField] private float pushPowerAmplifier;
     private int numberOfPushes = 0;
     private GameObject playerToFollow;
 
     protected override void CalculateMovingDirection()
     {
         //if we did not choose a player to follow yet, or the player we followed jumped to another planet as us, we choose one
-        if ((playerToFollow == null && GameObjectManager.Instance.Players.Count > 0) || (!IsPlayerOnSamePlanet(playerToFollow) && GameObjectManager.Instance.Players.Count > 1))
+        if ((playerToFollow == null && GameObjectManager.Instance.Players.Count > 0) ||
+            (!IsPlayerOnSamePlanet(playerToFollow) && GameObjectManager.Instance.Players.Count > 1))
         {
             //find the players whos are on the same planet
             List<GameObject> followablePlayers = new List<GameObject>();
@@ -82,7 +81,8 @@ public class EnemyBehaviour : CharacterBehaviour
             }
             else
             {
-                finalDir = Vector3.ProjectOnPlane((playerToFollow.transform.position - transform.position).normalized, transform.up).normalized;
+                finalDir = Vector3.ProjectOnPlane((playerToFollow.transform.position - transform.position).normalized,
+                    transform.up).normalized;
                 moveDir = Vector3.forward;
             }
         }
@@ -98,6 +98,7 @@ public class EnemyBehaviour : CharacterBehaviour
         {
             return player.GetComponent<PlayerBehaviour>().planetId == planetId;
         }
+
         return false;
     }
 
@@ -105,8 +106,8 @@ public class EnemyBehaviour : CharacterBehaviour
     {
         if (gravityBody.AttractorCount() == 0)
         {
-            characterNetworkState.SetHealthServerRpc(characterNetworkState.Health - 0.002f);
-            if (characterNetworkState.Health < 0f)
+            health -= 0.002f;
+            if (health < 0f)
             {
                 //TODO: implement death
                 Debug.LogError("Enemy death is not implemented!");

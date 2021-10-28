@@ -3,34 +3,24 @@ using UnityEngine;
 
 public abstract class CharacterBehaviour : NetworkBehaviour
 {
-    //basic objects
     [HideInInspector] public ulong planetId;
     //private Vector3 previousParentPos;
     //private Vector3 deltaParentPos;
 
-    //variables for thrust
     [SerializeField] protected float thrustPower = 50f;
-
-    //variables for attack
     [SerializeField] protected float attackPower = 1000f;
-
-    //variables for movement
     [SerializeField] protected float sprintSpeed = 30f;
     [SerializeField] protected float walkSpeed = 0f;
-
-    //variables for jump
     [SerializeField] protected float jumpForce = 2200f;
     [SerializeField] protected LayerMask groundedMask;
+
     private readonly float turnSmoothTime = 8f;
     protected Animator animator;
-
-    //network state
     protected CharacterNetworkState characterNetworkState;
     protected Vector3 finalDir;
     protected GravityBody gravityBody;
+    [Range(0f, 1f)] protected float health = 1f;
     protected bool isGrounded;
-
-    //state indicators
     protected bool isJumpEnabled;
     protected bool isJumping;
     protected bool isMoving;
@@ -79,14 +69,12 @@ public abstract class CharacterBehaviour : NetworkBehaviour
             //previousParentPos = parent.position;
             //transform.parent = null;
 
-
             //TODO: might be needed a network delta time
             Quaternion targetRotation = Quaternion.LookRotation(finalDir, transform.up);
             model.rotation = Quaternion.Slerp(model.rotation, targetRotation, turnSmoothTime * Time.deltaTime);
             GetComponent<Rigidbody>()
                 .MovePosition(GetComponent<Rigidbody>().position + (finalDir * moveSpeed) * Time.deltaTime);
-
-            //characterNetworkState.SetCharacterPositionServerRpc(transform.position);
+            
             characterNetworkState.SetModelRotationServerRpc(model.rotation);
 
             isMoving = true;

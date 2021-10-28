@@ -1,23 +1,20 @@
-﻿using Cinemachine;
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.UI;
+﻿using UnityEngine;
 
 public class PlayerBehaviour : CharacterBehaviour
 {
-    private Transform localCamera;
     private bool hitZeroStamina;
+
+    private Transform localCamera;
 
     public void AddHealth(float plusHealth)
     {
-        if (characterNetworkState.Health + plusHealth < 1f)
+        if (health + plusHealth < 1f)
         {
-            characterNetworkState.SetHealthServerRpc(characterNetworkState.Health + plusHealth);
+            health += plusHealth;
         }
         else
         {
-            characterNetworkState.SetHealthServerRpc(1f);
+            health = 1f;
         }
     }
 
@@ -29,7 +26,8 @@ public class PlayerBehaviour : CharacterBehaviour
 
         Vector3 cameraRelFaceDir = Vector3.ProjectOnPlane(localCamera.forward, transform.up).normalized;
         float anglePlayerForwCameraForw = Vector3.SignedAngle(cameraRelFaceDir, transform.forward, transform.up);
-        finalDir = (Quaternion.AngleAxis(-anglePlayerForwCameraForw, transform.up) * transform.TransformDirection(moveDir)).normalized;
+        finalDir = (Quaternion.AngleAxis(-anglePlayerForwCameraForw, transform.up) *
+                    transform.TransformDirection(moveDir)).normalized;
     }
 
     protected override void HandleJump()
@@ -46,7 +44,9 @@ public class PlayerBehaviour : CharacterBehaviour
             {
                 facingDir = finalDir;
             }
-            GetComponent<Rigidbody>().AddForce(Vector3.RotateTowards(facingDir, transform.up, 30 * Mathf.Deg2Rad, 0) * jumpForce);
+
+            GetComponent<Rigidbody>()
+                .AddForce(Vector3.RotateTowards(facingDir, transform.up, 30 * Mathf.Deg2Rad, 0) * jumpForce);
 
             SetAnimation("isJumped", 1);
             SetAnimation("isGrounded", 0);
@@ -98,10 +98,12 @@ public class PlayerBehaviour : CharacterBehaviour
                 stamina += 0.0005f;
                 GameObjectManager.Instance.StaminaBar.value = stamina;
             }
+
             if (stamina > 0.3f)
             {
                 hitZeroStamina = false;
             }
+
             moveSpeed = walkSpeed;
         }
     }
@@ -144,16 +146,19 @@ public class PlayerBehaviour : CharacterBehaviour
 
     protected override void CheckHealth()
     {
-        if (gravityBody.AttractorCount() == 0 && NetworkObject.IsSpawned)
+        if (gravityBody.AttractorCount() == 0 && NetworkObject.IsSpawned && NetworkManager.ServerTime.TimeAsFloat > 5f)
         {
-            characterNetworkState.SetHealthServerRpc(characterNetworkState.Health - 0.002f);
-            GameObjectManager.Instance.HealthBar.value = characterNetworkState.Health;
-            if (characterNetworkState.Health < 0f)
+            health -= 0.002f;
+            GameObjectManager.Instance.HealthBar.value = health;
+            if (health < 0f)
             {
                 //TODO: implement death
                 Debug.LogWarning("Player death is not implemented!");
                 GameObjectManager.Instance.CinemachineVirtualCamera.gameObject.SetActive(false);
-                //EventManager.Instance.SendPlayerDiedEvent(GetGuid());
+                transform.GetComponent<PlayerBehaviour>().enabled = false;
+                GameObjectManager.Instance.GameOverText.SetActive(true);
+
+                RoomInfoManager.Instance.DecreaseNumberOfLivePlayers(NetworkManager.LocalClientId);
             }
         }
     }

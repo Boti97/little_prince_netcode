@@ -8,17 +8,15 @@ public class GameSceneManager : NetworkBehaviour
     [SerializeField] private NetworkObject planetPrefab;
     [SerializeField] private GameObject leadSoldierPrefab;
     [SerializeField] private GameObject objectivePrefab;
+    [SerializeField] private NetworkObject roomInfoManagerPrefab;
     [SerializeField] private float solarSystemRadius;
 
     [SerializeField] private int baseSeed;
-    private ServerNetworkState serverNetworkState;
 
     public void Start()
     {
         //Cursor.lockState = CursorLockMode.Confined;
         //Cursor.visible = false;
-
-        serverNetworkState = transform.GetComponent<ServerNetworkState>();
 
         NetworkManager.Singleton.OnServerStarted += HandleServerStarted;
         NetworkManager.Singleton.OnClientConnectedCallback += HandleClientConnected;
@@ -57,6 +55,7 @@ public class GameSceneManager : NetworkBehaviour
         NetworkManager.Singleton.StartClient();
     }
 
+    //----------------------------------- CALLBACK METHODS -----------------------------------
     private void HandleServerStarted()
     {
         if (!NetworkManager.Singleton.IsHost)
@@ -64,10 +63,13 @@ public class GameSceneManager : NetworkBehaviour
             return;
         }
 
+        var roomInfoManager = Instantiate(roomInfoManagerPrefab, Vector3.zero, Quaternion.identity);
+        roomInfoManager.SpawnWithOwnership(NetworkManager.Singleton.ServerClientId);
+
         //create new random seed
         baseSeed = Random.Range(0, 100000);
         //send new seed to server
-        serverNetworkState.SetRoomSeedServerRpc(baseSeed);
+        RoomInfoManager.Instance.SetRoomSeed(baseSeed);
 
         //generate planet positions, and planet surfaces
         var planetPositions = GetPlanetPositions();
@@ -81,6 +83,8 @@ public class GameSceneManager : NetworkBehaviour
         SetUpPlanets(GameObjectManager.Instance.Planets, planetSurfaces);
 
         SetPlayerLocation();
+
+        RoomInfoManager.Instance.IncreaseNumberOfLivePlayers(NetworkManager.Singleton.LocalClientId);
     }
 
     private void HandleClientConnected(ulong clientId)
@@ -91,8 +95,7 @@ public class GameSceneManager : NetworkBehaviour
         }
 
         //init randomizer for generation
-        Debug.LogWarning(serverNetworkState.RoomSeed);
-        baseSeed = serverNetworkState.RoomSeed;
+        baseSeed = RoomInfoManager.Instance.RoomNetworkState.RoomSeed;
 
         //refresh planets, at this point Netcode should synchronize them already, but without surface
         GameObjectManager.Instance.RefreshPlanets();
@@ -104,21 +107,27 @@ public class GameSceneManager : NetworkBehaviour
         SetUpPlanets(GameObjectManager.Instance.Planets, planetSurfaces);
 
         SetPlayerLocation();
+
+        RoomInfoManager.Instance.IncreaseNumberOfLivePlayers(NetworkManager.Singleton.LocalClientId);
     }
 
     private void HandleClientDisconnect(ulong clientId)
     {
-        if (clientId != NetworkManager.Singleton.LocalClientId)
+        /*if (clientId != NetworkManager.Singleton.LocalClientId)
         {
             if (NetworkManager.Singleton.ConnectedClients.Count == 1 &&
                 NetworkManager.Singleton.ConnectedClients[0].ClientId == NetworkManager.Singleton.LocalClientId)
             {
                 GameObjectManager.Instance.YouWonText.SetActive(true);
                 GameObjectManager.Instance.CinemachineVirtualCamera.gameObject.SetActive(false);
+                GameObjectManager.Instance.GetOwnedPlayerById(NetworkManager.Singleton.LocalClientId)
+                    .GetComponent<PlayerBehaviour>().enabled = false;
             }
-        }
+        }*/
     }
+    //----------------------------------- PLAYER SETUP METHODS -----------------------------------
 
+    //move player to a random starting position
     private void SetPlayerLocation()
     {
         GameObjectManager.Instance.RefreshPlanets();
@@ -126,10 +135,9 @@ public class GameSceneManager : NetworkBehaviour
 
         GameObject player = GameObjectManager.Instance.GetOwnedPlayerById(NetworkManager.Singleton.LocalClientId);
 
-        //TODO: change this to random planet, only for debugging purposes
-        //int randomPlanetIndex = UnityEngine.Random.Range(0, GameObjectManager.Instance.Planets.Count - 1);
-        var randomPlanetIndex = 0;
+        int randomPlanetIndex = Random.Range(0, GameObjectManager.Instance.Planets.Count - 1);
 
+        //TODO: uncomment when enemies added
         //GameObjectManager.Instance.RemoveEnemiesOnPlanet(GameObjectManager.Instance.Planets[randomPlanetIndex].GetComponentInChildren<PlanetNetworkState>().PlanetId);
 
         var spawnPos = GameObjectManager.Instance.Planets[randomPlanetIndex].transform.position;
@@ -138,6 +146,7 @@ public class GameSceneManager : NetworkBehaviour
         player.transform.position = spawnPos;
     }
 
+    //----------------------------------- ENEMY SETUP METHODS -----------------------------------
     private void SpawnEnemiesAndObjectives()
     {
         //Vector3 enemySpawnPos;
@@ -184,23 +193,7 @@ public class GameSceneManager : NetworkBehaviour
         GameObjectManager.Instance.RefreshEnemies();
     }
 
-    //spawn the player to a random planet
-    private IEnumerator SpawnPlayer()
-    {
-        yield return StartCoroutine(GameObjectManager.Instance.RefreshPlanetsCoroutine());
-        //yield return StartCoroutine(GameObjectManager.Instance.RefreshEnemiesCoroutine());
-
-        //TODO: change this to random planet, only for debugging purposes
-        //int randomPlanetIndex = UnityEngine.Random.Range(0, GameObjectManager.Instance.Planets.Count - 1);
-        var randomPlanetIndex = 0;
-        //GameObjectManager.Instance.RemoveEnemiesOnPlanet(GameObjectManager.Instance.Planets[randomPlanetIndex].GetComponentInChildren<PlanetNetworkState>().PlanetId);
-
-        var spawnPos = GameObjectManager.Instance.Planets[randomPlanetIndex].transform.position;
-        spawnPos.x += 30;
-
-        //BoltNetwork.Instantiate(playerPrefab, spawnPos, Quaternion.identity);
-    }
-
+    //----------------------------------- PLANET SETUP METHODS -----------------------------------
     private void InitiatePlanetObjects(List<Vector3> planetPositions)
     {
         for (var i = 0; i < planetPositions.Count; i++)
@@ -220,6 +213,7 @@ public class GameSceneManager : NetworkBehaviour
         }
     }
 
+    //----------------------------------- GENERATOR CALLS  -----------------------------------
     private List<Vector3> GetPlanetPositions()
     {
         return gameObject.GetComponent<PlanetPositionGenerator>().GeneratePlanetPositions(baseSeed);
