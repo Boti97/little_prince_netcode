@@ -2,25 +2,22 @@
 
 public abstract class GravityAttractor : MonoBehaviour
 {
-    [SerializeField]
-    protected float gravityPower = -3000f;
-    [SerializeField]
-    private float gravityPowerIndicator = 3;
-    protected float attractTurnSpeed = 0.1f;
+    [SerializeField] protected float gravityPower = -3000f;
+    [SerializeField] private float gravityPowerIndicator = 3;
 
-    public float GravityPowerIndicator
-    {
-        get { return gravityPowerIndicator; }
-        set { gravityPowerIndicator = value; }
-    }
+    private const float AttractTurnSpeed = 0.1f;
+
+    protected float GravityPowerIndicator => gravityPowerIndicator;
 
     //base method, this needs to be overridden for special gravity behavior
     public void Attract(GameObject body)
     {
-        Vector3 targetDir = GetGravityDirection(body);
-        Quaternion targetRotation = Quaternion.FromToRotation(body.transform.up, targetDir) * body.transform.rotation;
+        var targetDir = GetGravityDirection(body);
+        var rotation = body.transform.rotation;
+        var targetRotation = Quaternion.FromToRotation(body.transform.up, targetDir) * rotation;
 
-        body.transform.rotation = Quaternion.Slerp(body.transform.rotation, targetRotation, attractTurnSpeed);
+        rotation = Quaternion.Slerp(rotation, targetRotation, AttractTurnSpeed);
+        body.transform.rotation = rotation;
 
         body.GetComponent<Rigidbody>().AddForce(targetDir * gravityPower * GetGravityPowerIndicator(body));
     }

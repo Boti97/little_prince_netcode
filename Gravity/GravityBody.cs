@@ -29,22 +29,21 @@ public class GravityBody : NetworkBehaviour
     {
         if (!IsOwner) return;
 
-        if (other.gameObject.layer.Equals(LayerMask.NameToLayer("GravityField")))
+        if (!other.gameObject.layer.Equals(LayerMask.NameToLayer("GravityField"))) return;
+
+        var networkObject = other.gameObject.GetComponentInParent<NetworkObject>();
+        var gravityAttractor = other.gameObject.GetComponentInParent<GravityAttractor>();
+        if (gravityAttractorDictionary.ContainsKey(networkObject.NetworkObjectId))
         {
-            NetworkObject networkObject = other.gameObject.GetComponentInParent<NetworkObject>();
-            GravityAttractor gravityAttractor = other.gameObject.GetComponentInParent<GravityAttractor>();
-            if (gravityAttractorDictionary.ContainsKey(networkObject.NetworkObjectId))
-            {
-                //if it's already in the list we only need to set the time to 0
-                gravityAttractorDictionary[networkObject.NetworkObjectId] =
-                    new KeyValuePair<GravityAttractor, float>(gravityAttractor, 0f);
-            }
-            else
-            {
-                //if it's not already in the list we  need to add a new entry
-                gravityAttractorDictionary.Add(networkObject.NetworkObjectId,
-                    new KeyValuePair<GravityAttractor, float>(gravityAttractor, 0f));
-            }
+            //if it's already in the list we only need to set the time to 0
+            gravityAttractorDictionary[networkObject.NetworkObjectId] =
+                new KeyValuePair<GravityAttractor, float>(gravityAttractor, 0f);
+        }
+        else
+        {
+            //if it's not already in the list we  need to add a new entry
+            gravityAttractorDictionary.Add(networkObject.NetworkObjectId,
+                new KeyValuePair<GravityAttractor, float>(gravityAttractor, 0f));
         }
     }
 
@@ -52,13 +51,12 @@ public class GravityBody : NetworkBehaviour
     {
         if (!IsOwner) return;
 
+        if (!other.gameObject.layer.Equals(LayerMask.NameToLayer("GravityField"))) return;
+
+        var networkObject = other.gameObject.GetComponentInParent<NetworkObject>();
         if (other.gameObject.layer.Equals(LayerMask.NameToLayer("GravityField")))
         {
-            NetworkObject networkObject = other.gameObject.GetComponentInParent<NetworkObject>();
-            if (other.gameObject.layer.Equals(LayerMask.NameToLayer("GravityField")))
-            {
-                gravityAttractorDictionary.Remove(networkObject.NetworkObjectId);
-            }
+            gravityAttractorDictionary.Remove(networkObject.NetworkObjectId);
         }
     }
 
@@ -73,8 +71,9 @@ public class GravityBody : NetworkBehaviour
 
     public int AttractorCount()
     {
-        if (!IsOwner) return 0;
-        return gravityAttractorDictionary.Count;
+        return !IsOwner
+            ? 0
+            : gravityAttractorDictionary.Count;
     }
 
     //checks if one or more attractors are out of our object's scope (it left them a while ago) and removes them
