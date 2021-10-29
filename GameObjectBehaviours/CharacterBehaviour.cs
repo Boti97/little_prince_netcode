@@ -4,32 +4,27 @@ using UnityEngine;
 public abstract class CharacterBehaviour : NetworkBehaviour
 {
     [HideInInspector] public ulong planetId;
-    //private Vector3 previousParentPos;
-    //private Vector3 deltaParentPos;
 
     [SerializeField] protected float thrustPower = 50f;
-    [SerializeField] protected float attackPower = 1000f;
     [SerializeField] protected float sprintSpeed = 30f;
-    [SerializeField] protected float walkSpeed = 0f;
+    [SerializeField] protected float walkSpeed;
     [SerializeField] protected float jumpForce = 2200f;
     [SerializeField] protected LayerMask groundedMask;
 
     private readonly float turnSmoothTime = 8f;
-    protected Animator animator;
-    protected CharacterNetworkState characterNetworkState;
+    private Animator animator;
+    private CharacterNetworkState characterNetworkState;
     protected Vector3 finalDir;
     protected GravityBody gravityBody;
     [Range(0f, 1f)] protected float health = 1f;
     protected bool isGrounded;
     protected bool isJumpEnabled;
     protected bool isJumping;
-    protected bool isMoving;
+    private bool isMoving;
     private Transform model;
     protected Vector3 moveDir;
     protected float moveSpeed = 8f;
     protected int numberOfJumps = 0;
-
-    protected Transform parent;
     protected float stamina = 1f;
     protected float thrust = 1f;
 
@@ -65,17 +60,15 @@ public abstract class CharacterBehaviour : NetworkBehaviour
                 SetAnimation("isWalking", 1);
             }
 
-            //deltaParentPos = parent.position - previousParentPos;
-            //previousParentPos = parent.position;
-            //transform.parent = null;
-
-            //TODO: might be needed a network delta time
-            Quaternion targetRotation = Quaternion.LookRotation(finalDir, transform.up);
-            model.rotation = Quaternion.Slerp(model.rotation, targetRotation, turnSmoothTime * Time.deltaTime);
+            var targetRotation = Quaternion.LookRotation(finalDir, transform.up);
+            var rotation = model.rotation;
+            rotation = Quaternion.Slerp(rotation, targetRotation,
+                turnSmoothTime * NetworkManager.Singleton.ServerTime.FixedDeltaTime);
+            model.rotation = rotation;
             GetComponent<Rigidbody>()
                 .MovePosition(GetComponent<Rigidbody>().position + (finalDir * moveSpeed) * Time.deltaTime);
-            
-            characterNetworkState.SetModelRotationServerRpc(model.rotation);
+
+            characterNetworkState.SetModelRotationServerRpc(rotation);
 
             isMoving = true;
         }
@@ -127,7 +120,7 @@ public abstract class CharacterBehaviour : NetworkBehaviour
     private void CheckOnGround()
     {
         Ray ray = new Ray(transform.position, -transform.up);
-        if (Physics.Raycast(ray, out RaycastHit hit, 2 + .1f, groundedMask))
+        if (Physics.Raycast(ray, out _, 2 + .1f, groundedMask))
         {
             if (!isJumping && !isMoving)
             {
@@ -136,9 +129,6 @@ public abstract class CharacterBehaviour : NetworkBehaviour
 
                 SetAnimation("isGrounded", 1);
                 SetAnimation("isJumped", 0);
-
-                //parent = hit.transform;
-                //transform.parent = parent;
             }
         }
     }

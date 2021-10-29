@@ -1,9 +1,9 @@
-﻿using UnityEngine;
+﻿using Unity.Netcode;
+using UnityEngine;
 
 public class PlayerBehaviour : CharacterBehaviour
 {
     private bool hitZeroStamina;
-
     private Transform localCamera;
 
     public void AddHealth(float plusHealth)
@@ -20,13 +20,14 @@ public class PlayerBehaviour : CharacterBehaviour
 
     protected override void CalculateMovingDirection()
     {
-        float horizontal = Input.GetAxisRaw("Horizontal");
-        float vertical = Input.GetAxisRaw("Vertical");
+        var horizontal = Input.GetAxisRaw("Horizontal");
+        var vertical = Input.GetAxisRaw("Vertical");
         moveDir = new Vector3(horizontal, 0f, vertical).normalized;
 
-        Vector3 cameraRelFaceDir = Vector3.ProjectOnPlane(localCamera.forward, transform.up).normalized;
-        float anglePlayerForwCameraForw = Vector3.SignedAngle(cameraRelFaceDir, transform.forward, transform.up);
-        finalDir = (Quaternion.AngleAxis(-anglePlayerForwCameraForw, transform.up) *
+        var up = transform.up;
+        var cameraRelativeFacingDir = Vector3.ProjectOnPlane(localCamera.forward, up).normalized;
+        var anglePlayerForwardCameraForward = Vector3.SignedAngle(cameraRelativeFacingDir, transform.forward, up);
+        finalDir = (Quaternion.AngleAxis(-anglePlayerForwardCameraForward, up) *
                     transform.TransformDirection(moveDir)).normalized;
     }
 
@@ -34,19 +35,17 @@ public class PlayerBehaviour : CharacterBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Space) && (isGrounded || isJumpEnabled))
         {
-            Vector3 facingDir = new Vector3();
-            //transform.parent = null;
-            if (moveDir.Equals(Vector3.zero))
-            {
-                facingDir = transform.GetChild(0).transform.forward.normalized;
-            }
-            else
-            {
-                facingDir = finalDir;
-            }
+            var facingDir = moveDir.Equals(Vector3.zero)
+                ? transform.GetChild(0).transform.forward.normalized
+                : finalDir;
 
             GetComponent<Rigidbody>()
-                .AddForce(Vector3.RotateTowards(facingDir, transform.up, 30 * Mathf.Deg2Rad, 0) * jumpForce);
+                .AddForce(Vector3.RotateTowards(
+                              facingDir,
+                              transform.up,
+                              30 * Mathf.Deg2Rad,
+                              0)
+                          * jumpForce);
 
             SetAnimation("isJumped", 1);
             SetAnimation("isGrounded", 0);
@@ -69,12 +68,11 @@ public class PlayerBehaviour : CharacterBehaviour
 
     protected override void InitializeCharacterSpecificFields()
     {
-        localCamera = Camera.main.gameObject.transform;
+        if (Camera.main is { }) localCamera = Camera.main.gameObject.transform;
 
-        GameObjectManager.Instance.CinemachineVirtualCamera.LookAt = gameObject.transform;
-        GameObjectManager.Instance.CinemachineVirtualCamera.Follow = gameObject.transform;
+        GameObjectManager.Instance.CinemachineVirtualCamera.LookAt = transform;
+        GameObjectManager.Instance.CinemachineVirtualCamera.Follow = transform;
 
-        //replaces PlayerJoinedEvent
         GameObjectManager.Instance.RefreshPlayers();
     }
 
@@ -125,41 +123,36 @@ public class PlayerBehaviour : CharacterBehaviour
 
     protected override void HandleAttack()
     {
-        Debug.LogWarning("Player attack is not implemented!");
-        //if (Input.GetMouseButtonDown(0))
-        //{
-        //    GameObjectManager.Instance.Players.ForEach(player =>
-        //    {
-        //        if (!player.GetComponent<PlayerNetworkState>().entity.IsOwner)
-        //        {
-        //            if (Vector3.Distance(player.transform.position, transform.position) < 1.5f)
-        //            {
-        //                EventManager.Instance.SendCharacterPushedEvent(
-        //                    transform.Find("Model").forward,
-        //                    player.GetComponent<PlayerNetworkState>().GetGuid(),
-        //                    attackPower);
-        //            }
-        //        }
-        //    });
-        //}
+        if (Input.GetMouseButtonDown(0))
+        {
+            GameObjectManager.Instance.Players.ForEach(player =>
+            {
+                //we don't want to attack ourselves
+                if (player.GetComponent<NetworkObject>().NetworkObjectId == NetworkObjectId) return;
+
+                if (Vector3.Distance(player.transform.position, transform.position) < 1.5f)
+                {
+                    Debug.LogWarning("Player attack is not implemented!");
+                }
+            });
+        }
     }
 
     protected override void CheckHealth()
     {
-        if (gravityBody.AttractorCount() == 0 && NetworkObject.IsSpawned && NetworkManager.ServerTime.TimeAsFloat > 5f)
-        {
-            health -= 0.002f;
-            GameObjectManager.Instance.HealthBar.value = health;
-            if (health < 0f)
-            {
-                //TODO: implement death
-                Debug.LogWarning("Player death is not implemented!");
-                GameObjectManager.Instance.CinemachineVirtualCamera.gameObject.SetActive(false);
-                transform.GetComponent<PlayerBehaviour>().enabled = false;
-                GameObjectManager.Instance.GameOverText.SetActive(true);
+        if (gravityBody.AttractorCount() != 0 || !NetworkObject.IsSpawned ||
+            !(NetworkManager.ServerTime.TimeAsFloat > 5f)) return;
 
-                RoomInfoManager.Instance.DecreaseNumberOfLivePlayers(NetworkManager.LocalClientId);
-            }
+        health -= 0.002f;
+        GameObjectManager.Instance.HealthBar.value = health;
+        
+        if (health < 0f)
+        {
+            GameObjectManager.Instance.CinemachineVirtualCamera.gameObject.SetActive(false);
+            transform.GetComponent<PlayerBehaviour>().enabled = false;
+            GameObjectManager.Instance.GameOverText.SetActive(true);
+
+            RoomInfoManager.Instance.DecreaseNumberOfLivePlayers(NetworkManager.LocalClientId);
         }
     }
 }
