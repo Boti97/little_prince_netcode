@@ -1,17 +1,13 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
 public class MinMax
 {
-    public float Min { get; private set; }
-    public float Max { get; private set; }
-
     public MinMax()
     {
         Min = float.MaxValue;
         Max = float.MinValue;
     }
+
+    public float Min { get; private set; }
+    public float Max { get; private set; }
 
     public void AddValue(float value)
     {
@@ -19,6 +15,7 @@ public class MinMax
         {
             Max = value;
         }
+
         if (value < Min)
         {
             Min = value;

@@ -1,23 +1,21 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class ShapeGenerator
 {
-    private ShapeSettings shapeSettings;
     private NoiseFilter[] noiseFilters;
-    private MinMax elevationMinMax;
+    private ShapeSettings shapeSettings;
 
-    public MinMax ElevationMinMax { get => elevationMinMax; set => elevationMinMax = value; }
+    public MinMax ElevationMinMax { get; private set; }
 
-    public void UpdateSettings(ShapeSettings shapeSettings)
+    public void UpdateSettings(ShapeSettings setting)
     {
-        this.shapeSettings = shapeSettings;
+        shapeSettings = setting;
         noiseFilters = new NoiseFilter[shapeSettings.noiseLayers.Length];
-        for (int i = 0; i < noiseFilters.Length; i++)
+        for (var i = 0; i < noiseFilters.Length; i++)
         {
             noiseFilters[i] = new NoiseFilter(shapeSettings.noiseLayers[i].noiseSettings);
         }
+
         ElevationMinMax = new MinMax();
     }
 
@@ -35,14 +33,14 @@ public class ShapeGenerator
             }
         }
 
-        for (int i = 1; i < noiseFilters.Length; i++)
+        for (var i = 1; i < noiseFilters.Length; i++)
         {
-            if (shapeSettings.noiseLayers[i].enabled)
-            {
-                float mask = (shapeSettings.noiseLayers[i].useFirstLayerAsMask) ? firstLayerValue : 1;
-                elevation += noiseFilters[i].GenerateNoise(pointOnPlanet) * mask;
-            }
+            if (!shapeSettings.noiseLayers[i].enabled) continue;
+            
+            var mask = (shapeSettings.noiseLayers[i].useFirstLayerAsMask) ? firstLayerValue : 1;
+            elevation += noiseFilters[i].GenerateNoise(pointOnPlanet) * mask;
         }
+
         elevation = shapeSettings.radius * (1 + elevation);
         ElevationMinMax.AddValue(elevation);
         return pointOnPlanet * elevation;

@@ -1,33 +1,30 @@
-using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
+using UnityEngine.Serialization;
 using static ShapeSettings;
-using Random = UnityEngine.Random;
 
 public class PlanetSurfaceGenerator : MonoBehaviour
 {
+    [Range(2, 256)] private const int resolution = 100;
     public float planetMinRange;
     public float planetMaxRange;
     public Shader planetShader;
     public List<Color> colorPalette;
+    public List<int> colorPaletteSeeds = new List<int>();
     public List<int> planetSeeds = new List<int>();
-    private ColorGenerator colorGenerator = new ColorGenerator();
 
-    private Gradient currentGradient;
-
-    private Vector3[] directions =
+    private readonly Vector3[] directions =
         {Vector3.up, Vector3.down, Vector3.left, Vector3.right, Vector3.forward, Vector3.back};
 
-    private String[] directionStrings = {"Up", "Down", "Left", "Right", "Forward", "Back"};
+    private readonly string[] directionStrings = {"Up", "Down", "Left", "Right", "Forward", "Back"};
+    private readonly List<GameObject> planets = new List<GameObject>();
+    private readonly ColorGenerator colorGenerator = new ColorGenerator();
+    private readonly ShapeGenerator shapeGenerator = new ShapeGenerator();
 
+    private Gradient currentGradient;
     private MeshFilter[] meshFilters;
-
-    private List<GameObject> planets = new List<GameObject>();
     private int planetSeed;
-
-    [Range(2, 256)] private int resolution = 100;
-    private ShapeGenerator shapeGenerator = new ShapeGenerator();
-
     private ShapeSettings shapeSettings;
     private TerrainFace[] terrainFaces;
 
@@ -35,20 +32,26 @@ public class PlanetSurfaceGenerator : MonoBehaviour
     {
         //set base seed
         Random.InitState(baseSeed);
+        Debug.Log("Base Seed: " + Random.seed);
 
-        this.colorPalette = new ColorPaletteGenerator().GenerateColorPalette(colorPalette.Count);
-        for (int i = 0; i < numberOfPlanets; i++)
+        var colorPaletteWithSeeds = ColorPaletteGenerator.GenerateColorPalette(baseSeed, colorPalette.Count);
+        colorPalette = colorPaletteWithSeeds.Select(pair => pair.Key).ToList();
+        colorPaletteSeeds = colorPaletteWithSeeds.Select(pair => pair.Value).ToList();
+        for (var planetNumber = 0; planetNumber < numberOfPlanets; planetNumber++)
         {
             planetSeed = Random.Range(0, 10000);
             planetSeeds.Add(planetSeed);
             //generate planet seed with base seed, to get different planets
             Random.InitState(planetSeed);
+            Debug.Log("Planet Seed: " + Random.seed);
             GenerateInput();
-            planets.Add(GeneratePlanet(i));
+            planets.Add(GeneratePlanet(planetNumber));
         }
 
         //set base seed back
         Random.InitState(baseSeed);
+        Debug.Log("Base Seed: " + Random.seed);
+
         return planets;
     }
 
@@ -56,16 +59,20 @@ public class PlanetSurfaceGenerator : MonoBehaviour
 
     private void GenerateInput()
     {
+        Debug.Log("Planet Seed: " + Random.seed);
+
         currentGradient = SetColorGradient();
 
-        shapeSettings = new ShapeSettings();
-        shapeSettings.radius = Random.Range(planetMinRange, planetMaxRange);
-        shapeSettings.noiseLayers = new NoiseLayer[3];
-
-        for (int i = 0; i < shapeSettings.noiseLayers.Length; i++)
+        shapeSettings = new ShapeSettings
         {
-            NoiseSettings noiseSettings = new NoiseSettings();
-            NoiseLayer noiseLayer = new NoiseLayer();
+            radius = Random.Range(planetMinRange, planetMaxRange),
+            noiseLayers = new NoiseLayer[3]
+        };
+
+        for (var i = 0; i < shapeSettings.noiseLayers.Length; i++)
+        {
+            var noiseSettings = new NoiseSettings();
+            var noiseLayer = new NoiseLayer();
 
             shapeSettings.noiseLayers[i] = noiseLayer;
 
@@ -128,13 +135,15 @@ public class PlanetSurfaceGenerator : MonoBehaviour
 
     private Gradient SetColorGradient()
     {
-        Gradient gradient = new Gradient();
-        GradientColorKey[] colorKey = new GradientColorKey[6];
-        GradientAlphaKey[] alphaKey = new GradientAlphaKey[6];
-        for (int i = 0; i < colorKey.Length; i++)
+        Debug.Log("Planet Seed: " + Random.seed);
+
+        var gradient = new Gradient();
+        var colorKey = new GradientColorKey[6];
+        var alphaKey = new GradientAlphaKey[6];
+        for (var i = 0; i < colorKey.Length; i++)
         {
             //get a random, NOT USED color from color palette
-            int numberOfColorInPalette = Random.Range(0, colorPalette.Count - 1);
+            var numberOfColorInPalette = Random.Range(0, colorPalette.Count - 1);
             colorKey[i].color = colorPalette[numberOfColorInPalette];
         }
 
@@ -168,12 +177,12 @@ public class PlanetSurfaceGenerator : MonoBehaviour
     }
 
     // ----------------------------- PLANET GENERATION METHODS ---------------------------------------------
-    public GameObject GeneratePlanet(int number)
+    private GameObject GeneratePlanet(int planetNumber)
     {
-        GameObject planet = new GameObject("Planet" + number + "Surface");
-        Material planetMaterial = new Material(planetShader);
+        var planet = new GameObject("Planet" + planetNumber + "Surface");
+        var planetMaterial = new Material(planetShader);
 
-        Initialize(planet, number, planetMaterial);
+        Initialize(planet, planetNumber, planetMaterial);
         planet.AddComponent<MeshFilter>().mesh.CombineMeshes(GenerateMeshes());
         planet.AddComponent<MeshRenderer>().material = planetMaterial;
         planet.AddComponent<MeshCollider>();
@@ -184,8 +193,7 @@ public class PlanetSurfaceGenerator : MonoBehaviour
         colorGenerator.UpdateElevation(planetMaterial, shapeGenerator.ElevationMinMax);
         colorGenerator.UpdateColors(planetMaterial, currentGradient);
 
-        int childs = planet.transform.childCount;
-        for (var i = childs - 1; i >= 0; i--)
+        for (var i = planet.transform.childCount - 1; i >= 0; i--)
         {
             Destroy(planet.transform.GetChild(i).gameObject);
         }
@@ -200,12 +208,17 @@ public class PlanetSurfaceGenerator : MonoBehaviour
         meshFilters = new MeshFilter[6];
         terrainFaces = new TerrainFace[6];
 
-        for (int i = 0; i < 6; i++)
+        for (var i = 0; i < 6; i++)
         {
             if (meshFilters[i] == null)
             {
-                GameObject meshObj = new GameObject("TerrainFace" + number + directionStrings[i]);
-                meshObj.transform.parent = planet.transform;
+                var meshObj = new GameObject("TerrainFace" + number + directionStrings[i])
+                {
+                    transform =
+                    {
+                        parent = planet.transform
+                    }
+                };
 
                 meshObj.AddComponent<MeshRenderer>();
                 meshFilters[i] = meshObj.AddComponent<MeshFilter>();
@@ -219,8 +232,8 @@ public class PlanetSurfaceGenerator : MonoBehaviour
 
     private CombineInstance[] GenerateMeshes()
     {
-        CombineInstance[] combineInstances = new CombineInstance[6];
-        for (int i = 0; i < terrainFaces.Length; i++)
+        var combineInstances = new CombineInstance[6];
+        for (var i = 0; i < terrainFaces.Length; i++)
         {
             combineInstances[i].mesh = terrainFaces[i].ConstructMesh();
             combineInstances[i].transform = meshFilters[i].transform.localToWorldMatrix;
