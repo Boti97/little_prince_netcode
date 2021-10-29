@@ -7,104 +7,43 @@ using UnityEngine.UI;
 
 public sealed class GameObjectManager : MonoBehaviour
 {
-    private static readonly object padlock = new object();
-    private static GameObjectManager instance = null;
+    private static readonly object Padlock = new object();
+    private static GameObjectManager _instance;
     [SerializeField] private GameObject headstonePrefab;
-    private CinemachineFreeLook cinemachineVirtualCamera;
-    private List<GameObject> enemies;
-    private GameObject gameOverText;
-    private Slider healthBar;
-    private List<GameObject> planets;
-    private List<GameObject> players;
 
-    private Slider staminaBar;
-    private GameObject sun;
-    private Slider thrustBar;
-    private GameObject youWonText;
+    public Slider StaminaBar { get; private set; }
+    public Slider HealthBar { get; private set; }
+    public GameObject GameOverText { get; private set; }
+    public GameObject YouWonText { get; private set; }
+    public CinemachineFreeLook CinemachineVirtualCamera { get; private set; }
+    public Slider ThrustBar { get; private set; }
+    public List<GameObject> Planets { get; private set; }
+    public List<GameObject> Players { get; private set; }
+    private List<GameObject> Enemies { get; set; }
 
     public static GameObjectManager Instance
     {
         get
         {
-            lock (padlock)
+            lock (Padlock)
             {
-                if (instance == null)
+                if (_instance == null)
                 {
-                    instance = new GameObjectManager();
+                    _instance = new GameObjectManager();
                 }
 
-                return instance;
+                return _instance;
             }
         }
     }
 
-    public Slider StaminaBar
-    {
-        get => staminaBar;
-        set => staminaBar = value;
-    }
-
-    public Slider HealthBar
-    {
-        get => healthBar;
-        set => healthBar = value;
-    }
-
-    public GameObject GameOverText
-    {
-        get => gameOverText;
-        set => gameOverText = value;
-    }
-
-    public GameObject YouWonText
-    {
-        get => youWonText;
-        set => youWonText = value;
-    }
-
-    public CinemachineFreeLook CinemachineVirtualCamera
-    {
-        get => cinemachineVirtualCamera;
-        set => cinemachineVirtualCamera = value;
-    }
-
-    public Slider ThrustBar
-    {
-        get => thrustBar;
-        set => thrustBar = value;
-    }
-
-    public List<GameObject> Planets
-    {
-        get => planets;
-        set => planets = value;
-    }
-
-    public List<GameObject> Players
-    {
-        get => players;
-        set => players = value;
-    }
-
-    public List<GameObject> Enemies
-    {
-        get => enemies;
-        set => enemies = value;
-    }
-
-    public GameObject Sun
-    {
-        get => sun;
-        set => sun = value;
-    }
-
     public void Awake()
     {
-        if (instance == null)
+        if (_instance == null)
         {
-            instance = this;
+            _instance = this;
         }
-        else if (instance != this)
+        else if (_instance != this)
         {
             Destroy(gameObject);
         }
@@ -129,8 +68,6 @@ public sealed class GameObjectManager : MonoBehaviour
         Enemies = new List<GameObject>();
         Enemies.AddRange(GameObject.FindGameObjectsWithTag("Enemy"));
 
-        Sun = GameObject.FindGameObjectWithTag("Sun");
-
         DeactivateUnnecessaryGameObjects();
     }
 
@@ -154,7 +91,7 @@ public sealed class GameObjectManager : MonoBehaviour
 
     public void RemovePlayer(ulong playerNetworkId)
     {
-        GameObject deadPlayer = GetPlayerById(playerNetworkId);
+        var deadPlayer = GetPlayerById(playerNetworkId);
         Instantiate(headstonePrefab, deadPlayer.transform.position, Quaternion.identity);
         Players.Remove(deadPlayer);
         Destroy(deadPlayer);
@@ -165,7 +102,7 @@ public sealed class GameObjectManager : MonoBehaviour
         return GetOwnedPlayerId() == id;
     }
 
-    public GameObject GetPlayerById(ulong id)
+    private GameObject GetPlayerById(ulong id)
     {
         return Players.Find(player => player.GetComponent<NetworkObject>().NetworkObjectId == id);
     }
@@ -175,7 +112,7 @@ public sealed class GameObjectManager : MonoBehaviour
         return Players.Find(player => player.GetComponent<NetworkObject>().OwnerClientId == ownerId);
     }
 
-    public ulong GetOwnedPlayerId()
+    private ulong GetOwnedPlayerId()
     {
         return Players.Find(player => player.GetComponent<NetworkObject>().IsOwner)
             .GetComponent<CharacterNetworkState>().NetworkObjectId;
@@ -201,7 +138,7 @@ public sealed class GameObjectManager : MonoBehaviour
         }
     }
 
-    public List<GameObject> FindEnemiesOnPlanet(ulong planetId)
+    private List<GameObject> FindEnemiesOnPlanet(ulong planetId)
     {
         return Enemies.FindAll(enemy => enemy.GetComponent<EnemyBehaviour>().planetId == planetId);
     }
@@ -243,7 +180,7 @@ public sealed class GameObjectManager : MonoBehaviour
 
     public List<Vector3> GetPlanetPositions()
     {
-        List<Vector3> planetPositions = new List<Vector3>();
+        var planetPositions = new List<Vector3>();
         Planets.ForEach(planet => planetPositions.Add(planet.transform.position));
         return planetPositions;
     }

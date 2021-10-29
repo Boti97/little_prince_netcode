@@ -10,11 +10,19 @@ public class GameMenuManager : NetworkBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Escape))
+        if (!Input.GetKeyDown(KeyCode.Escape)) return;
+
+        if (menu.activeSelf)
         {
-            if (menu.activeSelf) menu.SetActive(false);
-            else menu.SetActive(true);
-            //Cursor.visible = true;
+            Cursor.lockState = CursorLockMode.Confined;
+            Cursor.visible = false;
+            menu.SetActive(false);
+        }
+        else
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+            menu.SetActive(true);
         }
     }
 
@@ -22,13 +30,10 @@ public class GameMenuManager : NetworkBehaviour
     {
         if (NetworkManager.Singleton.IsHost)
         {
-            List<ulong> clientIds = NetworkManager.Singleton.ConnectedClients.Keys.ToList();
-            foreach (var clientId in clientIds)
+            var clientIds = NetworkManager.Singleton.ConnectedClients.Keys.ToList();
+            foreach (var clientId in clientIds.Where(clientId => clientId != NetworkManager.Singleton.LocalClientId))
             {
-                if (clientId != NetworkManager.Singleton.LocalClientId)
-                {
-                    NetworkManager.Singleton.DisconnectClient(clientId);
-                }
+                NetworkManager.Singleton.DisconnectClient(clientId);
             }
 
             NetworkManager.Singleton.Shutdown();
@@ -44,5 +49,7 @@ public class GameMenuManager : NetworkBehaviour
     public void OnResumeClick()
     {
         menu.SetActive(false);
+        Cursor.lockState = CursorLockMode.Confined;
+        Cursor.visible = false;
     }
 }

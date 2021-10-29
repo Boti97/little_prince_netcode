@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class GameSceneManager : NetworkBehaviour
 {
@@ -14,24 +15,19 @@ public class GameSceneManager : NetworkBehaviour
 
     public void Start()
     {
-        //Cursor.lockState = CursorLockMode.Confined;
-        //Cursor.visible = false;
+        Cursor.lockState = CursorLockMode.Confined;
+        Cursor.visible = false;
 
         NetworkManager.Singleton.OnServerStarted += HandleServerStarted;
         NetworkManager.Singleton.OnClientConnectedCallback += HandleClientConnected;
         NetworkManager.Singleton.OnClientDisconnectCallback += HandleClientDisconnect;
 
-        if (SceneNetworkData.choosenJoinMode.Equals(SceneNetworkData.JoinMode.HOST))
-        {
-            StartCoroutine(StartHost());
-        }
-        else
-        {
-            StartCoroutine(StartClient());
-        }
+        StartCoroutine(SceneNetworkData.chosenJoinMode.Equals(SceneNetworkData.JoinMode.Host)
+            ? StartHost()
+            : StartClient());
     }
 
-    public void OnDestroy()
+    public override void OnDestroy()
     {
         if (NetworkManager.Singleton == null) return;
 
@@ -112,17 +108,11 @@ public class GameSceneManager : NetworkBehaviour
 
     private void HandleClientDisconnect(ulong clientId)
     {
-        /*if (clientId != NetworkManager.Singleton.LocalClientId)
+        //if the host kicked us out
+        if (clientId == NetworkManager.Singleton.LocalClientId)
         {
-            if (NetworkManager.Singleton.ConnectedClients.Count == 1 &&
-                NetworkManager.Singleton.ConnectedClients[0].ClientId == NetworkManager.Singleton.LocalClientId)
-            {
-                GameObjectManager.Instance.YouWonText.SetActive(true);
-                GameObjectManager.Instance.CinemachineVirtualCamera.gameObject.SetActive(false);
-                GameObjectManager.Instance.GetOwnedPlayerById(NetworkManager.Singleton.LocalClientId)
-                    .GetComponent<PlayerBehaviour>().enabled = false;
-            }
-        }*/
+            SceneManager.LoadScene("Start");
+        }
     }
     //----------------------------------- PLAYER SETUP METHODS -----------------------------------
 
@@ -132,9 +122,9 @@ public class GameSceneManager : NetworkBehaviour
         GameObjectManager.Instance.RefreshPlanets();
         GameObjectManager.Instance.RefreshPlayers();
 
-        GameObject player = GameObjectManager.Instance.GetOwnedPlayerById(NetworkManager.Singleton.LocalClientId);
+        var player = GameObjectManager.Instance.GetOwnedPlayerById(NetworkManager.Singleton.LocalClientId);
 
-        int randomPlanetIndex = Random.Range(0, GameObjectManager.Instance.Planets.Count - 1);
+        var randomPlanetIndex = Random.Range(0, GameObjectManager.Instance.Planets.Count - 1);
 
         //TODO: uncomment when enemies added
         //GameObjectManager.Instance.RemoveEnemiesOnPlanet(GameObjectManager.Instance.Planets[randomPlanetIndex].GetComponentInChildren<PlanetNetworkState>().PlanetId);
@@ -158,7 +148,6 @@ public class GameSceneManager : NetworkBehaviour
         {
             var numberOfEnemies = Random.Range(1, 4);
             Vector3 enemySpawnPos;
-            Vector3 objectiveSpawnPos;
             if (numberOfEnemies > 0)
             {
                 enemySpawnPos = planet.transform.position;
@@ -183,7 +172,7 @@ public class GameSceneManager : NetworkBehaviour
             var probabilityOfObjectives = Random.Range(1, 101);
             if (probabilityOfObjectives > 50)
             {
-                objectiveSpawnPos = planet.transform.position;
+                var objectiveSpawnPos = planet.transform.position;
                 objectiveSpawnPos.z += 30;
                 //BoltNetwork.Instantiate(objectivePrefab, objectiveSpawnPos, Quaternion.identity);
             }
@@ -193,16 +182,16 @@ public class GameSceneManager : NetworkBehaviour
     }
 
     //----------------------------------- PLANET SETUP METHODS -----------------------------------
-    private void InitiatePlanetObjects(List<Vector3> planetPositions)
+    private void InitiatePlanetObjects(IReadOnlyList<Vector3> planetPositions)
     {
-        for (var i = 0; i < planetPositions.Count; i++)
+        foreach (var planetPosition in planetPositions)
         {
-            var planet = Instantiate(planetPrefab, planetPositions[i], Quaternion.identity);
+            var planet = Instantiate(planetPrefab, planetPosition, Quaternion.identity);
             planet.SpawnWithOwnership(NetworkManager.Singleton.ServerClientId);
         }
     }
 
-    private void SetUpPlanets(List<GameObject> planets, List<GameObject> planetSurfaces)
+    private void SetUpPlanets(IReadOnlyList<GameObject> planets, IReadOnlyList<GameObject> planetSurfaces)
     {
         for (var i = 0; i < planets.Count; i++)
         {

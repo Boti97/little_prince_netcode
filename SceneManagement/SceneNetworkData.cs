@@ -1,9 +1,10 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
 public static class SceneNetworkData
 {
-    public enum JoinMode { HOST, CLIENT }
-    public static JoinMode choosenJoinMode;
+    public enum JoinMode
+    {
+        Host,
+        Client
+    }
+
+    public static JoinMode chosenJoinMode;
 }
