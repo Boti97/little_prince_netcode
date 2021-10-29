@@ -133,7 +133,12 @@ public class GameSceneManager : NetworkBehaviour
 
         var player = GameObjectManager.Instance.GetOwnedPlayerById(NetworkManager.Singleton.LocalClientId);
 
-        var randomPlanetIndex = (ulong) Random.Range(0, GameObjectManager.Instance.Planets.Count - 1);
+        var planetsOrderById =
+            GameObjectManager.Instance.Planets.OrderBy(planet => planet.GetComponent<NetworkObject>().NetworkObjectId)
+                .ToList();
+        var minPlanetId = planetsOrderById[0].GetComponent<NetworkObject>().NetworkObjectId;
+        var maxPlanetId = planetsOrderById[planetsOrderById.Count - 1].GetComponent<NetworkObject>().NetworkObjectId;
+        var randomPlanetIndex = (ulong) Random.Range(minPlanetId, maxPlanetId);
 
         //TODO: uncomment when enemies added
         //GameObjectManager.Instance.RemoveEnemiesOnPlanet(GameObjectManager.Instance.Planets[randomPlanetIndex].GetComponentInChildren<PlanetNetworkState>().PlanetId);
