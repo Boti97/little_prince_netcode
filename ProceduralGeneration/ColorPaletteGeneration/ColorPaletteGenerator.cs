@@ -1,26 +1,38 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class ColorPaletteGenerator
+public static class ColorPaletteGenerator
 {
-    public List<Color> GenerateColorPalette(int sizeOfColorPalette)
+    public static List<KeyValuePair<Color, int>> GenerateColorPalette(int baseSeed, int sizeOfColorPalette)
     {
-        List<Color> colorPalette = new List<Color>();
-        for (int i = 0; i < sizeOfColorPalette; i++)
+        var colorPaletteWithSeed = new List<KeyValuePair<Color, int>>();
+        Random.InitState(baseSeed);
+        Debug.Log("Base Seed: " + Random.seed);
+        for (var i = 0; i < sizeOfColorPalette; i++)
         {
-            colorPalette.Add(GenerateRandomButLimitedColor());
+            //generate color seed with base seed, to get different colors
+            var colorSeed = Random.Range(0, 10000);
+            Random.InitState(colorSeed);
+            Debug.Log("Color Seed: " + Random.seed);
+
+            colorPaletteWithSeed.Add(new KeyValuePair<Color, int>(GenerateRandomButLimitedColor(), colorSeed));
         }
-        return colorPalette;
+
+        Random.InitState(baseSeed);
+        Debug.Log("Base Seed: " + Random.seed);
+
+        return colorPaletteWithSeed;
     }
 
-    private Color GenerateRandomButLimitedColor()
+    private static Color GenerateRandomButLimitedColor()
     {
-        float minHue = Random.Range(0f, 1f);
-        float maxHue = Random.Range(minHue, 1f);
-        float minSaturation = Random.Range(0.3f, 0.7f);
-        float maxSaturation = Random.Range(minSaturation, 0.7f);
-        float minValue = Random.Range(0.3f, 0.5f);
-        float maxValue = Random.Range(minValue, 0.5f);
+        Debug.Log("Color Seed: " + Random.seed);
+        var minHue = Random.Range(0f, 1f);
+        var maxHue = Random.Range(minHue, 1f);
+        var minSaturation = Random.Range(0.3f, 0.7f);
+        var maxSaturation = Random.Range(minSaturation, 0.7f);
+        var minValue = Random.Range(0.3f, 0.5f);
+        var maxValue = Random.Range(minValue, 0.5f);
 
         return Random.ColorHSV(minHue, maxHue, minSaturation, maxSaturation, minValue, maxValue);
     }
