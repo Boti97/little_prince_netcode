@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -74,8 +75,12 @@ public class GameSceneManager : NetworkBehaviour
 
         GameObjectManager.Instance.RefreshPlanets();
 
+        var planetsOrderedById =
+            GameObjectManager.Instance.Planets
+                .OrderBy(planet => planet.GetComponent<NetworkObject>().NetworkObjectId)
+                .ToList();
         //add name and surface to planets
-        SetUpPlanets(GameObjectManager.Instance.Planets, planetSurfaces);
+        SetUpPlanets(planetsOrderedById, planetSurfaces);
 
         SetPlayerLocation();
 
@@ -98,8 +103,12 @@ public class GameSceneManager : NetworkBehaviour
         //generate planet positions, and planet surfaces
         var planetSurfaces = GetPlanetSurfaces(GameObjectManager.Instance.Planets.Count);
 
+        var planetsOrderedById =
+            GameObjectManager.Instance.Planets
+                .OrderBy(planet => planet.GetComponent<NetworkObject>().NetworkObjectId)
+                .ToList();
         //add name and surface to planets
-        SetUpPlanets(GameObjectManager.Instance.Planets, planetSurfaces);
+        SetUpPlanets(planetsOrderedById, planetSurfaces);
 
         SetPlayerLocation();
 
@@ -124,12 +133,14 @@ public class GameSceneManager : NetworkBehaviour
 
         var player = GameObjectManager.Instance.GetOwnedPlayerById(NetworkManager.Singleton.LocalClientId);
 
-        var randomPlanetIndex = Random.Range(0, GameObjectManager.Instance.Planets.Count - 1);
+        var randomPlanetIndex = (ulong) Random.Range(0, GameObjectManager.Instance.Planets.Count - 1);
 
         //TODO: uncomment when enemies added
         //GameObjectManager.Instance.RemoveEnemiesOnPlanet(GameObjectManager.Instance.Planets[randomPlanetIndex].GetComponentInChildren<PlanetNetworkState>().PlanetId);
 
-        var spawnPos = GameObjectManager.Instance.Planets[randomPlanetIndex].transform.position;
+        var spawnPos = GameObjectManager.Instance.Planets
+            .Find(planet => planet.GetComponent<NetworkObject>().NetworkObjectId == randomPlanetIndex).transform
+            .position;
         spawnPos.x += 30;
 
         player.transform.position = spawnPos;
