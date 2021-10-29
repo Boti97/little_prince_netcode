@@ -1,42 +1,39 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class PlanetPositionFinder
 {
-    public static List<Vector3> FindPlanetPositions(LineRenderer functionView, float numberOfPointsInFunction, float planetDensity)
+    public static List<Vector3> FindPlanetPositions(LineRenderer functionView, float numberOfPointsInFunction,
+        float planetDensity)
     {
-        List<Vector3> planetPositions = new List<Vector3>();
-
-        Vector3 currentPos = functionView.GetPosition(0);
-
-        Vector3 lastPosition = Vector3.positiveInfinity;
-        int indexOfClosestPoint = 0;
+        var planetPositions = new List<Vector3>();
+        var currentPos = functionView.GetPosition(0);
+        var lastPosition = Vector3.positiveInfinity;
+        var indexOfClosestPoint = 0;
 
         planetPositions.Add(currentPos);
-        for (int l = 0; l < numberOfPointsInFunction; l++)
+        for (var l = 0; l < numberOfPointsInFunction; l++)
         {
-            Vector3 closestPoint = Vector3.positiveInfinity;
-            float closestDistance = float.PositiveInfinity;
+            var closestPoint = Vector3.positiveInfinity;
+            var closestDistance = float.PositiveInfinity;
 
-            for (int i = indexOfClosestPoint; i < numberOfPointsInFunction; i++)
+            for (var i = indexOfClosestPoint; i < numberOfPointsInFunction; i++)
             {
-                Vector3 nextPoint = functionView.GetPosition(i);
-                float distance = GetDistance(planetDensity, currentPos, nextPoint);
+                var nextPoint = functionView.GetPosition(i);
+                var distance = GetDistance(planetDensity, currentPos, nextPoint);
                 if (distance > planetDensity * 3) break;
-                if (distance < closestDistance)
-                {
-                    if (IsNewPoint(planetPositions, nextPoint, planetDensity, numberOfPointsInFunction))
-                    {
-                        closestDistance = distance;
-                        closestPoint = nextPoint;
-                        indexOfClosestPoint = i;
-                    }
-                }
+
+                if (!(distance < closestDistance) ||
+                    !IsNewPoint(planetPositions, nextPoint, planetDensity, numberOfPointsInFunction)) continue;
+
+                closestDistance = distance;
+                closestPoint = nextPoint;
+                indexOfClosestPoint = i;
             }
 
-            if (!closestPoint.Equals(Vector3.positiveInfinity) && !closestPoint.Equals(lastPosition) && !currentPos.Equals(lastPosition))
+            if (!closestPoint.Equals(Vector3.positiveInfinity) && !closestPoint.Equals(lastPosition) &&
+                !currentPos.Equals(lastPosition))
             {
                 planetPositions.Add(closestPoint);
                 lastPosition = currentPos;
@@ -48,23 +45,19 @@ public class PlanetPositionFinder
         return planetPositions;
     }
 
-    private static bool IsNewPoint(List<Vector3> planetPositions, Vector3 nextPoint, float planetDensity, float numberOfPointsInFunction)
+    private static bool IsNewPoint(IEnumerable<Vector3> planetPositions, Vector3 nextPoint, float planetDensity,
+        float numberOfPointsInFunction)
     {
-        foreach (Vector3 vector in planetPositions)
-        {
-            //(circleRadius / (numberOfPointsInFunction / 4)) is about one point to point length in the line renderer
-            //four time this length should be enought (+/-)
-            if (Vector3.Distance(nextPoint, vector) < (float)(planetDensity - 4 * (planetDensity / (numberOfPointsInFunction / 4)))
-                || Vector3.Distance(nextPoint, vector) < (float)(planetDensity + 4 * (planetDensity / (numberOfPointsInFunction / 4))))
-            {
-                return false;
-            }
-        }
-        return true;
+        return planetPositions.All(vector =>
+            !(Vector3.Distance(nextPoint, vector) <
+              planetDensity - 4 * (planetDensity / (numberOfPointsInFunction / 4))) &&
+            !(Vector3.Distance(nextPoint, vector) <
+              planetDensity + 4 * (planetDensity / (numberOfPointsInFunction / 4))));
     }
 
     private static float GetDistance(float radius, Vector3 circleCenter, Vector3 point)
     {
-        return Mathf.Abs(Mathf.Sqrt(((point.x - circleCenter.x) * (point.x - circleCenter.x)) + ((point.y - circleCenter.y) * (point.y - circleCenter.y))) - radius);
+        return Mathf.Abs(Mathf.Sqrt((point.x - circleCenter.x) * (point.x - circleCenter.x) +
+                                    (point.y - circleCenter.y) * (point.y - circleCenter.y)) - radius);
     }
 }

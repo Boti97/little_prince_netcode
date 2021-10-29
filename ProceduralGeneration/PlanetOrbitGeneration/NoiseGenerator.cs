@@ -1,12 +1,12 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public static class NoiseGenerator
 {
-    public static float GenerateNoise(float xPos, float yPos, float noiseAmplitude, float noiseRoughness, float noiseSeed)
+    public static float GenerateNoise(float xPos, float yPos, float noiseAmplitude, float noiseRoughness,
+        float noiseSeed)
     {
-        return 1 + (noiseAmplitude * GenerateFirstLayerNoise(xPos, noiseRoughness) * GenerateSecondLayerNoise(yPos, noiseSeed, noiseRoughness));
+        return 1 + noiseAmplitude * GenerateFirstLayerNoise(xPos, noiseRoughness) *
+            GenerateSecondLayerNoise(yPos, noiseSeed, noiseRoughness);
     }
 
     private static float GenerateFirstLayerNoise(float xPos, float noiseRoughness)
