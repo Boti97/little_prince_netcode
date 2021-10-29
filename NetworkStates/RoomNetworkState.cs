@@ -9,10 +9,7 @@ public class RoomNetworkState : NetworkBehaviour
     [SerializeField] private NetworkVariable<int> roomSeed = new NetworkVariable<int>();
     [SerializeField] private NetworkVariable<bool> isRoomStarted = new NetworkVariable<bool>();
 
-    public int RoomSeed
-    {
-        get => roomSeed.Value;
-    }
+    public int RoomSeed => roomSeed.Value;
 
     public override void OnNetworkSpawn()
     {
@@ -37,37 +34,37 @@ public class RoomNetworkState : NetworkBehaviour
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void DecreaseNumberOfLivePlayersServerRpc(ulong playerWhoReported)
+    public void DecreaseNumberOfLivePlayersServerRpc(ulong playerId)
     {
         //TODO: implement checks
 
         numberOfLivePlayers.Value--;
-        this.playerWhoReported.Value = playerWhoReported;
+        playerWhoReported.Value = playerId;
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void IncreaseNumberOfLivePlayersServerRpc(ulong playerWhoReported)
+    public void IncreaseNumberOfLivePlayersServerRpc(ulong playerId)
     {
         //TODO: implement checks
 
         numberOfLivePlayers.Value++;
-        this.playerWhoReported.Value = playerWhoReported;
+        playerWhoReported.Value = playerId;
     }
 
     [ServerRpc]
-    public void SetRoomNameServerRpc(byte roomName)
+    public void SetRoomNameServerRpc(byte nameOfRoom)
     {
         //TODO: implement checks
 
-        this.roomName.Value = roomName;
+        roomName.Value = nameOfRoom;
     }
 
     [ServerRpc]
-    public void SetRoomSeedServerRpc(int roomSeed)
+    public void SetRoomSeedServerRpc(int seed)
     {
         //TODO: implement checks
 
-        this.roomSeed.Value = roomSeed;
+        roomSeed.Value = seed;
     }
 
     private void OnNumberOfLivePlayersChanged(ulong oldPlayerWhoReport, ulong newPlayerWhoReport)
@@ -77,7 +74,7 @@ public class RoomNetworkState : NetworkBehaviour
             return;
         }
 
-        //if there were at least one old playerid -> not the first player joining
+        //if there were at least one old playerId -> not the first player joining
         //but the number of players alive is 1
         //and it is not us who reports (we cannot report that someone else died, so we won with our report)
         //we report on two occasions:
@@ -106,7 +103,6 @@ public class RoomNetworkState : NetworkBehaviour
     {
         if (!IsClient)
         {
-            return;
         }
 
         //TODO: implement

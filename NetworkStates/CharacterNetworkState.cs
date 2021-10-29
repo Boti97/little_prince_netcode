@@ -3,17 +3,20 @@ using UnityEngine;
 
 public class CharacterNetworkState : NetworkBehaviour
 {
-    private const string isGroundedString = "isGrounded";
-    private const string isWalkingString = "isWalking";
-    private const string isJumpedString = "isJumped";
+    private const string IsGroundedString = "isGrounded";
+    private const string IsWalkingString = "isWalking";
+    private const string IsJumpedString = "isJumped";
+    private static readonly int IsGrounded = Animator.StringToHash(IsGroundedString);
+    private static readonly int IsWalking = Animator.StringToHash(IsWalkingString);
+    private static readonly int IsJumped = Animator.StringToHash(IsJumpedString);
+    private readonly NetworkVariable<int> isGrounded = new NetworkVariable<int>();
+    private readonly NetworkVariable<int> isJumped = new NetworkVariable<int>();
+    private readonly NetworkVariable<int> isWalking = new NetworkVariable<int>();
+    private readonly NetworkVariable<Quaternion> modelRotation = new NetworkVariable<Quaternion>();
 
     private Animator animator;
-    private NetworkVariable<int> isGrounded = new NetworkVariable<int>();
-    private NetworkVariable<int> isJumped = new NetworkVariable<int>();
-    private NetworkVariable<int> isWalking = new NetworkVariable<int>();
 
     private Transform model;
-    private NetworkVariable<Quaternion> modelRotation = new NetworkVariable<Quaternion>();
 
     public override void OnNetworkSpawn()
     {
@@ -60,13 +63,13 @@ public class CharacterNetworkState : NetworkBehaviour
 
         switch (nameOfAnimation)
         {
-            case isGroundedString:
+            case IsGroundedString:
                 isGrounded.Value = value;
                 break;
-            case isWalkingString:
+            case IsWalkingString:
                 isWalking.Value = value;
                 break;
-            case isJumpedString:
+            case IsJumpedString:
                 isJumped.Value = value;
                 break;
         }
@@ -91,7 +94,7 @@ public class CharacterNetworkState : NetworkBehaviour
             return;
         }
 
-        animator.SetInteger(isGroundedString, newValue);
+        animator.SetInteger(IsGrounded, newValue);
     }
 
     private void OnIsWalkingChanged(int oldValue, int newValue)
@@ -101,7 +104,7 @@ public class CharacterNetworkState : NetworkBehaviour
             return;
         }
 
-        animator.SetInteger(isWalkingString, newValue);
+        animator.SetInteger(IsWalking, newValue);
     }
 
     private void OnIsJumpedChanged(int oldValue, int newValue)
@@ -111,6 +114,6 @@ public class CharacterNetworkState : NetworkBehaviour
             return;
         }
 
-        animator.SetInteger(isJumpedString, newValue);
+        animator.SetInteger(IsJumped, newValue);
     }
 }
