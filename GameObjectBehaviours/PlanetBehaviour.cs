@@ -26,6 +26,5 @@ public class PlanetBehaviour : NetworkBehaviour
         if (!IsOwner) return;
 
         selfRotationSpeed = Random.Range(0.0f, selfRotationSpeed);
-        selfRotationAxis = VectorExtensions.RandomAxis();
     }
 }
