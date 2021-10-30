@@ -7,8 +7,10 @@ public class RoomNetworkState : NetworkBehaviour
     [SerializeField] private NetworkVariable<ulong> playerWhoReported = new NetworkVariable<ulong>();
     [SerializeField] private NetworkVariable<int> roomSeed = new NetworkVariable<int>();
     [SerializeField] private NetworkVariable<bool> isRoomStarted = new NetworkVariable<bool>();
+    [SerializeField] private NetworkVariable<bool> isRoomLive = new NetworkVariable<bool>();
 
     public int RoomSeed => roomSeed.Value;
+    public bool IsRoomLive => isRoomLive.Value;
 
     public override void OnNetworkSpawn()
     {
@@ -81,6 +83,12 @@ public class RoomNetworkState : NetworkBehaviour
 
         roomSeed.Value = seed;
     }
+    
+    [ServerRpc]
+    public void SetIsRoomLiveServerRpc(bool isLive)
+    {
+        isRoomLive.Value = isLive;
+    }
 
     private void OnNumberOfLivePlayersChanged(ulong oldPlayerWhoReport, ulong newPlayerWhoReport)
     {
@@ -99,9 +107,7 @@ public class RoomNetworkState : NetworkBehaviour
             !newPlayerWhoReport.Equals(NetworkManager.Singleton.LocalClientId))
         {
             GameObjectManager.Instance.YouWonText.SetActive(true);
-            GameObjectManager.Instance.CinemachineVirtualCamera.gameObject.SetActive(false);
-            GameObjectManager.Instance.GetOwnedPlayerById(NetworkManager.Singleton.LocalClientId)
-                .GetComponent<PlayerBehaviour>().enabled = false;
+            GameObjectManager.Instance.DisableLocalPlayerMovement();
         }
         else if (IsServer)
         {

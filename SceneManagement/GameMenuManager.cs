@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+using System;
 using System.Linq;
 using Unity.Netcode;
 using UnityEngine;
@@ -10,6 +10,8 @@ public class GameMenuManager : NetworkBehaviour
 
     private void Update()
     {
+        if (GameObjectManager.Instance.LoadingBar.gameObject.activeSelf) return;
+
         if (!Input.GetKeyDown(KeyCode.Escape)) return;
 
         if (menu.activeSelf)
@@ -17,30 +19,42 @@ public class GameMenuManager : NetworkBehaviour
             Cursor.lockState = CursorLockMode.Confined;
             Cursor.visible = false;
             menu.SetActive(false);
+            //let the player move again
+            GameObjectManager.Instance.EnableLocalPlayerMovement();
         }
         else
         {
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
             menu.SetActive(true);
+            //do not let the player move
+            GameObjectManager.Instance.DisableLocalPlayerMovement();
         }
     }
 
     public void OnExitClick()
     {
-        if (NetworkManager.Singleton.IsHost)
+        try
         {
-            var clientIds = NetworkManager.Singleton.ConnectedClients.Keys.ToList();
-            foreach (var clientId in clientIds.Where(clientId => clientId != NetworkManager.Singleton.LocalClientId))
+            if (NetworkManager.Singleton.IsHost)
             {
-                NetworkManager.Singleton.DisconnectClient(clientId);
-            }
+                var clientIds = NetworkManager.Singleton.ConnectedClients.Keys.ToList();
+                foreach (var clientId in
+                    clientIds.Where(clientId => clientId != NetworkManager.Singleton.LocalClientId))
+                {
+                    NetworkManager.Singleton.DisconnectClient(clientId);
+                }
 
-            NetworkManager.Singleton.Shutdown();
+                NetworkManager.Singleton.Shutdown();
+            }
+            else
+            {
+                RoomInfoManager.Instance.DecreaseNumberOfLivePlayers(NetworkManager.Singleton.LocalClientId);
+            }
         }
-        else
+        catch (NullReferenceException exception)
         {
-            RoomInfoManager.Instance.DecreaseNumberOfLivePlayers(NetworkManager.Singleton.LocalClientId);
+            Debug.Log("NetworkManager doesn't exist. Stack trace: " + exception);
         }
 
         SceneManager.LoadScene("Start");
@@ -51,5 +65,16 @@ public class GameMenuManager : NetworkBehaviour
         menu.SetActive(false);
         Cursor.lockState = CursorLockMode.Confined;
         Cursor.visible = false;
+        try
+        {
+            if (NetworkManager.Singleton != null)
+            {
+                GameObjectManager.Instance.EnableLocalPlayerMovement();
+            }
+        }
+        catch (NullReferenceException exception)
+        {
+            Debug.Log("NetworkManager doesn't exist. Stack trace: " + exception);
+        }
     }
 }

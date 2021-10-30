@@ -13,6 +13,10 @@ public class GameSceneManager : NetworkBehaviour
     [SerializeField] private NetworkObject roomInfoManagerPrefab;
 
     [SerializeField] private int baseSeed;
+    private bool isRoomLive = false;
+
+    private List<Vector3> planetPositions;
+    private List<GameObject> planetSurfaces;
 
     public void Start()
     {
@@ -23,9 +27,18 @@ public class GameSceneManager : NetworkBehaviour
         NetworkManager.Singleton.OnClientConnectedCallback += HandleClientConnected;
         NetworkManager.Singleton.OnClientDisconnectCallback += HandleClientDisconnect;
 
-        StartCoroutine(SceneNetworkData.chosenJoinMode.Equals(SceneNetworkData.JoinMode.Host)
-            ? StartHost()
-            : StartClient());
+        //we don't want to see or do anything with the player until the room is set up
+        GameObjectManager.Instance.DisableLocalPlayer();
+        GameObjectManager.Instance.DisablePlayerBars();
+
+        if (SceneLoadData.chosenJoinMode.Equals(SceneLoadData.JoinMode.Host))
+        {
+            StartHost();
+        }
+        else
+        {
+            StartClient();
+        }
     }
 
     public override void OnDestroy()
@@ -37,18 +50,36 @@ public class GameSceneManager : NetworkBehaviour
         NetworkManager.Singleton.OnClientDisconnectCallback -= HandleClientDisconnect;
     }
 
-    private IEnumerator StartHost()
+    private void StartHost()
     {
-        //TODO: implement
-        yield return new WaitForSeconds(0f);
         NetworkManager.Singleton.StartHost();
+        StartCoroutine(RoomHealthWatcher());
     }
 
-    private IEnumerator StartClient()
+    private void StartClient()
     {
-        //TODO: implement
-        yield return new WaitForSeconds(0f);
         NetworkManager.Singleton.StartClient();
+        StartCoroutine(RoomHealthWatcher());
+    }
+
+    private IEnumerator RoomHealthWatcher()
+    {
+        while (true)
+        {
+            yield return new WaitForSeconds(5);
+
+            if (RoomInfoManager.Instance == null || !RoomInfoManager.Instance.IsRoomLive())
+            {
+                Debug.LogWarning("Room is not alive.");
+                Destroy(NetworkManager.Singleton);
+                SceneLoadData.ReasonForSceneLoad = "Unable to connect to room.";
+                SceneManager.LoadScene("Start");
+            }
+            else
+            {
+                Debug.Log("Room is alive.");
+            }
+        }
     }
 
     //----------------------------------- CALLBACK METHODS -----------------------------------
@@ -59,8 +90,25 @@ public class GameSceneManager : NetworkBehaviour
             return;
         }
 
-        var roomInfoManager = Instantiate(roomInfoManagerPrefab, Vector3.zero, Quaternion.identity);
-        roomInfoManager.SpawnWithOwnership(NetworkManager.Singleton.ServerClientId);
+        StartCoroutine(SetUpServer());
+    }
+
+    private void HandleClientConnected(ulong clientId)
+    {
+        if (NetworkManager.Singleton.IsHost)
+        {
+            return;
+        }
+
+        StartCoroutine(SetUpClient());
+    }
+
+    private IEnumerator SetUpServer()
+    {
+        var roomInfoManagerObj = Instantiate(roomInfoManagerPrefab, Vector3.zero, Quaternion.identity);
+        roomInfoManagerObj.SpawnWithOwnership(NetworkManager.Singleton.ServerClientId);
+
+        RoomInfoManager.Instance.SetIsRoomLive(true);
 
         //create new random seed
         baseSeed = Random.Range(0, 100000);
@@ -68,8 +116,8 @@ public class GameSceneManager : NetworkBehaviour
         RoomInfoManager.Instance.SetRoomSeed(baseSeed);
 
         //generate planet positions, and planet surfaces
-        var planetPositions = GetPlanetPositions();
-        var planetSurfaces = GetPlanetSurfaces(planetPositions.Count);
+        yield return StartCoroutine(GetPlanetPositions());
+        yield return StartCoroutine(GetPlanetSurfaces());
 
         InitiatePlanetObjects(planetPositions);
 
@@ -87,21 +135,17 @@ public class GameSceneManager : NetworkBehaviour
         RoomInfoManager.Instance.IncreaseNumberOfLivePlayers(NetworkManager.Singleton.LocalClientId);
     }
 
-    private void HandleClientConnected(ulong clientId)
+    private IEnumerator SetUpClient()
     {
-        if (NetworkManager.Singleton.IsHost)
-        {
-            return;
-        }
-
         //init randomizer for generation
         baseSeed = RoomInfoManager.Instance.RoomNetworkState.RoomSeed;
 
         //refresh planets, at this point Netcode should synchronize them already, but without surface
         GameObjectManager.Instance.RefreshPlanets();
+        planetPositions = GameObjectManager.Instance.GetPlanetPositions();
 
         //generate planet positions, and planet surfaces
-        var planetSurfaces = GetPlanetSurfaces(GameObjectManager.Instance.Planets.Count);
+        yield return StartCoroutine(GetPlanetSurfaces());
 
         var planetsOrderedById =
             GameObjectManager.Instance.Planets
@@ -128,6 +172,10 @@ public class GameSceneManager : NetworkBehaviour
     //move player to a random starting position
     private void SetPlayerLocation()
     {
+        GameObjectManager.Instance.EnableLocalPlayer();
+        GameObjectManager.Instance.LoadingBar.gameObject.SetActive(false);
+        GameObjectManager.Instance.EnablePlayerBars();
+
         GameObjectManager.Instance.RefreshPlanets();
         GameObjectManager.Instance.RefreshPlayers();
 
@@ -138,13 +186,14 @@ public class GameSceneManager : NetworkBehaviour
                 .ToList();
         var minPlanetId = planetsOrderById[0].GetComponent<NetworkObject>().NetworkObjectId;
         var maxPlanetId = planetsOrderById[planetsOrderById.Count - 1].GetComponent<NetworkObject>().NetworkObjectId;
+        //TODO: not used becouse with minPlanetId it is easier to debug, use after debugging
         var randomPlanetIndex = (ulong) Random.Range(minPlanetId, maxPlanetId);
 
         //TODO: uncomment when enemies added
         //GameObjectManager.Instance.RemoveEnemiesOnPlanet(GameObjectManager.Instance.Planets[randomPlanetIndex].GetComponentInChildren<PlanetNetworkState>().PlanetId);
 
         var spawnPos = GameObjectManager.Instance.Planets
-            .Find(planet => planet.GetComponent<NetworkObject>().NetworkObjectId == randomPlanetIndex).transform
+            .Find(planet => planet.GetComponent<NetworkObject>().NetworkObjectId == minPlanetId).transform
             .position;
         spawnPos.x += 30;
 
@@ -218,13 +267,16 @@ public class GameSceneManager : NetworkBehaviour
     }
 
     //----------------------------------- GENERATOR CALLS  -----------------------------------
-    private List<Vector3> GetPlanetPositions()
+    private IEnumerator GetPlanetPositions()
     {
-        return gameObject.GetComponent<PlanetPositionGenerator>().GeneratePlanetPositions(baseSeed);
+        planetPositions = gameObject.GetComponent<PlanetPositionGenerator>().GeneratePlanetPositions(baseSeed);
+        yield break;
     }
 
-    private List<GameObject> GetPlanetSurfaces(int numberOfPlanets)
+    private IEnumerator GetPlanetSurfaces()
     {
-        return gameObject.GetComponent<PlanetSurfaceGenerator>().GeneratePlanets(numberOfPlanets, baseSeed);
+        yield return StartCoroutine(gameObject.GetComponent<PlanetSurfaceGenerator>()
+            .GeneratePlanets(planetPositions.Count, baseSeed));
+        planetSurfaces = gameObject.GetComponent<PlanetSurfaceGenerator>().Planets;
     }
 }

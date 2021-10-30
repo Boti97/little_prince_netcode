@@ -52,4 +52,14 @@ public sealed class RoomInfoManager : MonoBehaviour
     {
         RoomNetworkState.SetRoomSeedServerRpc(roomSeed);
     }
+
+    public void SetIsRoomLive(bool isLive)
+    {
+        RoomNetworkState.SetIsRoomLiveServerRpc(isLive);
+    }
+
+    public bool IsRoomLive()
+    {
+        return RoomNetworkState.IsRoomLive;
+    }
 }

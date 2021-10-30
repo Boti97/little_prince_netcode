@@ -148,8 +148,7 @@ public class PlayerBehaviour : CharacterBehaviour
         
         if (health < 0f)
         {
-            GameObjectManager.Instance.CinemachineVirtualCamera.gameObject.SetActive(false);
-            transform.GetComponent<PlayerBehaviour>().enabled = false;
+            GameObjectManager.Instance.DisableLocalPlayerMovement();
             GameObjectManager.Instance.GameOverText.SetActive(true);
 
             RoomInfoManager.Instance.DecreaseNumberOfLivePlayers(NetworkManager.LocalClientId);

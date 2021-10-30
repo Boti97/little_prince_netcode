@@ -13,10 +13,11 @@ public sealed class GameObjectManager : MonoBehaviour
 
     public Slider StaminaBar { get; private set; }
     public Slider HealthBar { get; private set; }
+    public Slider ThrustBar { get; private set; }
+    public Slider LoadingBar { get; private set; }
     public GameObject GameOverText { get; private set; }
     public GameObject YouWonText { get; private set; }
     public CinemachineFreeLook CinemachineVirtualCamera { get; private set; }
-    public Slider ThrustBar { get; private set; }
     public List<GameObject> Planets { get; private set; }
     public List<GameObject> Players { get; private set; }
     private List<GameObject> Enemies { get; set; }
@@ -54,6 +55,7 @@ public sealed class GameObjectManager : MonoBehaviour
         StaminaBar = GameObject.FindGameObjectWithTag("StaminaBar").GetComponent<Slider>();
         ThrustBar = GameObject.FindGameObjectWithTag("ThrustBar").GetComponent<Slider>();
         HealthBar = GameObject.FindGameObjectWithTag("HealthBar").GetComponent<Slider>();
+        LoadingBar = GameObject.FindGameObjectWithTag("LoadingBar").GetComponent<Slider>();
         GameOverText = GameObject.FindGameObjectWithTag("GameOver");
         YouWonText = GameObject.FindGameObjectWithTag("YouWon");
         CinemachineVirtualCamera =
@@ -128,6 +130,28 @@ public sealed class GameObjectManager : MonoBehaviour
         return Players.FindAll(player => player.GetComponent<PlayerBehaviour>().planetId == planetId);
     }
 
+    public void DisableLocalPlayer()
+    {
+        CinemachineVirtualCamera.gameObject.SetActive(false);
+    }
+
+    public void EnableLocalPlayer()
+    {
+        CinemachineVirtualCamera.gameObject.SetActive(true);
+    }
+
+    public void DisableLocalPlayerMovement()
+    {
+        CinemachineVirtualCamera.gameObject.SetActive(false);
+        CinemachineVirtualCamera.Follow.gameObject.GetComponent<PlayerBehaviour>().enabled = false;
+    }
+
+    public void EnableLocalPlayerMovement()
+    {
+        CinemachineVirtualCamera.gameObject.SetActive(true);
+        CinemachineVirtualCamera.Follow.gameObject.GetComponent<PlayerBehaviour>().enabled = true;
+    }
+
     //----------------------------------- ENEMY RELATED METHODS -----------------------------------
     public IEnumerator RefreshEnemiesCoroutine()
     {
@@ -189,6 +213,20 @@ public sealed class GameObjectManager : MonoBehaviour
     public bool IsGameOver()
     {
         return GameOverText.activeSelf;
+    }
+
+    public void EnablePlayerBars()
+    {
+        ThrustBar.gameObject.SetActive(true);
+        HealthBar.gameObject.SetActive(true);
+        StaminaBar.gameObject.SetActive(true);
+    }
+
+    public void DisablePlayerBars()
+    {
+        ThrustBar.gameObject.SetActive(false);
+        HealthBar.gameObject.SetActive(false);
+        StaminaBar.gameObject.SetActive(false);
     }
 
     //----------------------------------- PRIVATE METHODS -----------------------------------

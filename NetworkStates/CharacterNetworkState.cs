@@ -52,7 +52,7 @@ public class CharacterNetworkState : NetworkBehaviour
     public void SetModelRotationServerRpc(Quaternion rotation)
     {
         var changeAngle = Quaternion.Angle(modelRotation.Value, rotation);
-        if (changeAngle > 50 && !modelRotation.Value.eulerAngles.Equals(Quaternion.identity.eulerAngles))
+        if (changeAngle > 180 && !modelRotation.Value.eulerAngles.Equals(Quaternion.identity.eulerAngles))
         {
             Debug.LogWarning(
                 "Rotation change dismissed, since change angle is too big: "

@@ -1,4 +1,4 @@
-public static class SceneNetworkData
+public static class SceneLoadData
 {
     public enum JoinMode
     {
@@ -7,4 +7,5 @@ public static class SceneNetworkData
     }
 
     public static JoinMode chosenJoinMode;
+    public static string ReasonForSceneLoad { get; set; }
 }

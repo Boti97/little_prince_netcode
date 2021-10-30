@@ -1,7 +1,7 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using UnityEngine.Serialization;
 using static ShapeSettings;
 
 public class PlanetSurfaceGenerator : MonoBehaviour
@@ -13,13 +13,12 @@ public class PlanetSurfaceGenerator : MonoBehaviour
     public List<Color> colorPalette;
     public List<int> colorPaletteSeeds = new List<int>();
     public List<int> planetSeeds = new List<int>();
+    private readonly ColorGenerator colorGenerator = new ColorGenerator();
 
     private readonly Vector3[] directions =
         {Vector3.up, Vector3.down, Vector3.left, Vector3.right, Vector3.forward, Vector3.back};
 
     private readonly string[] directionStrings = {"Up", "Down", "Left", "Right", "Forward", "Back"};
-    private readonly List<GameObject> planets = new List<GameObject>();
-    private readonly ColorGenerator colorGenerator = new ColorGenerator();
     private readonly ShapeGenerator shapeGenerator = new ShapeGenerator();
 
     private Gradient currentGradient;
@@ -27,8 +26,9 @@ public class PlanetSurfaceGenerator : MonoBehaviour
     private int planetSeed;
     private ShapeSettings shapeSettings;
     private TerrainFace[] terrainFaces;
+    public List<GameObject> Planets { get; } = new List<GameObject>();
 
-    public List<GameObject> GeneratePlanets(int numberOfPlanets, int baseSeed)
+    public IEnumerator GeneratePlanets(int numberOfPlanets, int baseSeed)
     {
         //set base seed
         Random.InitState(baseSeed);
@@ -39,20 +39,25 @@ public class PlanetSurfaceGenerator : MonoBehaviour
         colorPaletteSeeds = colorPaletteWithSeeds.Select(pair => pair.Value).ToList();
         for (var planetNumber = 0; planetNumber < numberOfPlanets; planetNumber++)
         {
-            planetSeed = Random.Range(0, 10000);
-            planetSeeds.Add(planetSeed);
-            //generate planet seed with base seed, to get different planets
-            Random.InitState(planetSeed);
-            Debug.Log("Planet Seed: " + Random.seed);
-            GenerateInput();
-            planets.Add(GeneratePlanet(planetNumber));
+            yield return StartCoroutine(GeneratePlanet(planetNumber));
+            GameObjectManager.Instance.LoadingBar.value += 1f / numberOfPlanets;
         }
 
         //set base seed back
         Random.InitState(baseSeed);
         Debug.Log("Base Seed: " + Random.seed);
+    }
 
-        return planets;
+    private IEnumerator GeneratePlanet(int planetNumber)
+    {
+        planetSeed = Random.Range(0, 10000);
+        planetSeeds.Add(planetSeed);
+        //generate planet seed with base seed, to get different planets
+        Random.InitState(planetSeed);
+        Debug.Log("Planet Seed: " + Random.seed);
+        GenerateInput();
+        Planets.Add(GeneratePlanetSurface(planetNumber));
+        yield break;
     }
 
     // ----------------------------- INITIALIZATORS ----------------------------------
@@ -177,7 +182,7 @@ public class PlanetSurfaceGenerator : MonoBehaviour
     }
 
     // ----------------------------- PLANET GENERATION METHODS ---------------------------------------------
-    private GameObject GeneratePlanet(int planetNumber)
+    private GameObject GeneratePlanetSurface(int planetNumber)
     {
         var planet = new GameObject("Planet" + planetNumber + "Surface");
         var planetMaterial = new Material(planetShader);

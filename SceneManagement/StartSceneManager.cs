@@ -1,3 +1,4 @@
+using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -11,6 +12,8 @@ public class StartSceneManager : MonoBehaviour
     [SerializeField] private GameObject hostOnlineGamePanel;
 
     private bool hostIsCreating;
+    private GameObject EventPopUp { get; set; }
+    private TMP_Text EventPopUpText { get; set; }
 
     public void Awake()
     {
@@ -22,19 +25,42 @@ public class StartSceneManager : MonoBehaviour
         mainMenuPanel.SetActive(true);
     }
 
+    private void Start()
+    {
+        EventPopUp = GameObject.FindWithTag("EventPopUp");
+        EventPopUpText = GameObject.FindWithTag("EventPopUpText").GetComponent<TMP_Text>();
+
+        EventPopUp.SetActive(false);
+
+        //if this is not empty it means there's a reason why this is scene is running now
+        if (!string.IsNullOrEmpty(SceneLoadData.ReasonForSceneLoad))
+        {
+            StartCoroutine(PopUpEvent(SceneLoadData.ReasonForSceneLoad));
+        }
+    }
+
+    private IEnumerator PopUpEvent(string message)
+    {
+        EventPopUp.SetActive(true);
+        EventPopUpText.text = message;
+        SceneLoadData.ReasonForSceneLoad = "";
+        yield return new WaitForSeconds(5);
+        EventPopUp.SetActive(false);
+    }
+
     public void OnClickHost()
     {
         hostIsCreating = true;
         GameObject.Find("HostButton").GetComponent<Button>().interactable = false;
         GameObject.Find("BackButton").GetComponent<Button>().interactable = false;
         GameObject.FindWithTag("NewRoomNameInputField").GetComponent<TMP_InputField>().interactable = false;
-        SceneNetworkData.chosenJoinMode = SceneNetworkData.JoinMode.Host;
+        SceneLoadData.chosenJoinMode = SceneLoadData.JoinMode.Host;
         SceneManager.LoadScene("Game");
     }
 
     public void OnClickJoin()
     {
-        SceneNetworkData.chosenJoinMode = SceneNetworkData.JoinMode.Client;
+        SceneLoadData.chosenJoinMode = SceneLoadData.JoinMode.Client;
         SceneManager.LoadScene("Game");
     }
 
