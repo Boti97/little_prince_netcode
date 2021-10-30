@@ -5,7 +5,6 @@ public class RoomNetworkState : NetworkBehaviour
 {
     [SerializeField] private NetworkVariable<int> numberOfLivePlayers = new NetworkVariable<int>(0);
     [SerializeField] private NetworkVariable<ulong> playerWhoReported = new NetworkVariable<ulong>();
-    [SerializeField] private NetworkVariable<byte> roomName = new NetworkVariable<byte>();
     [SerializeField] private NetworkVariable<int> roomSeed = new NetworkVariable<int>();
     [SerializeField] private NetworkVariable<bool> isRoomStarted = new NetworkVariable<bool>();
 
@@ -18,7 +17,6 @@ public class RoomNetworkState : NetworkBehaviour
             return;
         }
 
-        roomName.OnValueChanged += OnRoomNameChanged;
         playerWhoReported.OnValueChanged += OnNumberOfLivePlayersChanged;
     }
 
@@ -29,14 +27,27 @@ public class RoomNetworkState : NetworkBehaviour
             return;
         }
 
-        roomName.OnValueChanged -= OnRoomNameChanged;
         playerWhoReported.OnValueChanged -= OnNumberOfLivePlayersChanged;
     }
 
     [ServerRpc(RequireOwnership = false)]
     public void DecreaseNumberOfLivePlayersServerRpc(ulong playerId)
     {
-        //TODO: implement checks
+        if (!NetworkManager.ConnectedClients.ContainsKey(playerId))
+        {
+            Debug.LogWarning(
+                "Decrease number of players request dismissed, " +
+                "since playerId doesn't belong to a connected player.");
+            return;
+        }
+
+        if (numberOfLivePlayers.Value == 0)
+        {
+            Debug.LogWarning(
+                "Decrease number of players request dismissed, " +
+                "since number of live players is zero.");
+            return;
+        }
 
         numberOfLivePlayers.Value--;
         playerWhoReported.Value = playerId;
@@ -45,24 +56,28 @@ public class RoomNetworkState : NetworkBehaviour
     [ServerRpc(RequireOwnership = false)]
     public void IncreaseNumberOfLivePlayersServerRpc(ulong playerId)
     {
-        //TODO: implement checks
+        if (!NetworkManager.ConnectedClients.ContainsKey(playerId))
+        {
+            Debug.LogWarning(
+                "Increase number of players request dismissed, " +
+                "since playerId doesn't belong to a connected player.");
+            return;
+        }
 
         numberOfLivePlayers.Value++;
         playerWhoReported.Value = playerId;
     }
 
     [ServerRpc]
-    public void SetRoomNameServerRpc(byte nameOfRoom)
-    {
-        //TODO: implement checks
-
-        roomName.Value = nameOfRoom;
-    }
-
-    [ServerRpc]
     public void SetRoomSeedServerRpc(int seed)
     {
-        //TODO: implement checks
+        if (seed < 0 || seed > 100000)
+        {
+            Debug.LogWarning(
+                "Seed setting request dismissed, " +
+                "since seed is out of bounds. Seed: " + seed);
+            return;
+        }
 
         roomSeed.Value = seed;
     }
@@ -97,14 +112,5 @@ public class RoomNetworkState : NetworkBehaviour
         {
             Debug.Log("Player reported.");
         }
-    }
-
-    private void OnRoomNameChanged(byte oldPlanetRotation, byte newPlanetRotation)
-    {
-        if (!IsClient)
-        {
-        }
-
-        //TODO: implement
     }
 }

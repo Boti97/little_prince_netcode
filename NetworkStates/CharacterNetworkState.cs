@@ -14,6 +14,7 @@ public class CharacterNetworkState : NetworkBehaviour
     private readonly NetworkVariable<int> isWalking = new NetworkVariable<int>();
     private readonly NetworkVariable<Quaternion> modelRotation = new NetworkVariable<Quaternion>();
 
+
     private Animator animator;
 
     private Transform model;
@@ -47,11 +48,18 @@ public class CharacterNetworkState : NetworkBehaviour
         isJumped.OnValueChanged -= OnIsJumpedChanged;
     }
 
-    //data format is questionable, maybe byte
     [ServerRpc]
     public void SetModelRotationServerRpc(Quaternion rotation)
     {
-        //TODO: implement checks
+        var changeAngle = Quaternion.Angle(modelRotation.Value, rotation);
+        if (changeAngle > 50 && !modelRotation.Value.eulerAngles.Equals(Quaternion.identity.eulerAngles))
+        {
+            Debug.LogWarning(
+                "Rotation change dismissed, since change angle is too big: "
+                + changeAngle
+                + " degrees.");
+            return;
+        }
 
         modelRotation.Value = rotation;
     }
@@ -59,7 +67,11 @@ public class CharacterNetworkState : NetworkBehaviour
     [ServerRpc]
     public void SetAnimationServerRpc(string nameOfAnimation, int value)
     {
-        //TODO: implement checks
+        if (value != 0 && value != 1)
+        {
+            Debug.LogWarning("Animation set request dismissed, since value is invalid. Value: " + value);
+            return;
+        }
 
         switch (nameOfAnimation)
         {
@@ -72,9 +84,10 @@ public class CharacterNetworkState : NetworkBehaviour
             case IsJumpedString:
                 isJumped.Value = value;
                 break;
+            default:
+                Debug.LogWarning("Unknown animation set requested. Name: " + nameOfAnimation);
+                break;
         }
-
-        ;
     }
 
     private void OnModelRotationChanged(Quaternion oldModelRotation, Quaternion newModelRotation)
