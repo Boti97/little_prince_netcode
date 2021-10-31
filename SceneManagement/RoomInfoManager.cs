@@ -38,14 +38,14 @@ public sealed class RoomInfoManager : MonoBehaviour
     }
 
     //----------------------------------- NETWORK METHODS -----------------------------------
-    public void DecreaseNumberOfLivePlayers(ulong playerWhoReported)
+    public void ReportPlayerDeath(ulong playerWhoReported)
     {
-        RoomNetworkState.DecreaseNumberOfLivePlayersServerRpc(playerWhoReported);
+        RoomNetworkState.ReportPlayerDeathServerRpc(playerWhoReported);
     }
 
-    public void IncreaseNumberOfLivePlayers(ulong playerWhoReported)
+    public void ReportJoinedPlayer(ulong playerWhoReported)
     {
-        RoomNetworkState.IncreaseNumberOfLivePlayersServerRpc(playerWhoReported);
+        RoomNetworkState.ReportPlayerJoinedServerRpc(playerWhoReported);
     }
 
     public void SetRoomSeed(int roomSeed)

@@ -145,13 +145,14 @@ public class PlayerBehaviour : CharacterBehaviour
 
         health -= 0.002f;
         GameObjectManager.Instance.HealthBar.value = health;
-        
+
         if (health < 0f)
         {
-            GameObjectManager.Instance.DisableLocalPlayerMovement();
+            GameObjectManager.Instance.CinemachineVirtualCamera.gameObject.SetActive(false);
+            //GameObjectManager.Instance.SetObjectsForPlayerDeath(gameObject.GetComponent<NetworkObject>().NetworkObjectId);
             GameObjectManager.Instance.GameOverText.SetActive(true);
 
-            RoomInfoManager.Instance.DecreaseNumberOfLivePlayers(NetworkManager.LocalClientId);
+            RoomInfoManager.Instance.ReportPlayerDeath(GameObjectManager.Instance.GetLocalPlayerId());
         }
     }
 }

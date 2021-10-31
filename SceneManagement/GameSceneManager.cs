@@ -1,9 +1,12 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using static SceneLoadData;
+using Random = UnityEngine.Random;
 
 public class GameSceneManager : NetworkBehaviour
 {
@@ -31,7 +34,7 @@ public class GameSceneManager : NetworkBehaviour
         GameObjectManager.Instance.DisableLocalPlayer();
         GameObjectManager.Instance.DisablePlayerBars();
 
-        if (SceneLoadData.chosenJoinMode.Equals(SceneLoadData.JoinMode.Host))
+        if (chosenJoinMode.Equals(JoinMode.Host))
         {
             StartHost();
         }
@@ -52,17 +55,33 @@ public class GameSceneManager : NetworkBehaviour
 
     private void StartHost()
     {
-        NetworkManager.Singleton.StartHost();
-        StartCoroutine(RoomHealthWatcher());
+        try
+        {
+            NetworkManager.Singleton.StartHost();
+        }
+        catch (Exception e)
+        {
+            Debug.Log("Error during starting host: " + e);
+        }
+
+        StartCoroutine(RoomHealthWatcher(JoinMode.Host));
     }
 
     private void StartClient()
     {
-        NetworkManager.Singleton.StartClient();
-        StartCoroutine(RoomHealthWatcher());
+        try
+        {
+            NetworkManager.Singleton.StartClient();
+        }
+        catch (Exception e)
+        {
+            Debug.Log("Error during connecting to host: " + e);
+        }
+
+        StartCoroutine(RoomHealthWatcher(JoinMode.Client));
     }
 
-    private IEnumerator RoomHealthWatcher()
+    private IEnumerator RoomHealthWatcher(JoinMode joinMode)
     {
         while (true)
         {
@@ -71,8 +90,16 @@ public class GameSceneManager : NetworkBehaviour
             if (RoomInfoManager.Instance == null || !RoomInfoManager.Instance.IsRoomLive())
             {
                 Debug.LogWarning("Room is not alive.");
-                Destroy(NetworkManager.Singleton);
-                SceneLoadData.ReasonForSceneLoad = "Unable to connect to room.";
+                Destroy(GameObject.FindWithTag("NetworkManager"));
+                if (joinMode.Equals(JoinMode.Client))
+                {
+                    ReasonForSceneLoad = "Unable to connect to room.";
+                }
+                else
+                {
+                    ReasonForSceneLoad = "Unable to start room hosting.";
+                }
+
                 SceneManager.LoadScene("Start");
             }
             else
@@ -132,7 +159,7 @@ public class GameSceneManager : NetworkBehaviour
 
         SetPlayerLocation();
 
-        RoomInfoManager.Instance.IncreaseNumberOfLivePlayers(NetworkManager.Singleton.LocalClientId);
+        RoomInfoManager.Instance.ReportJoinedPlayer(GameObjectManager.Instance.GetLocalPlayerId());
     }
 
     private IEnumerator SetUpClient()
@@ -156,7 +183,7 @@ public class GameSceneManager : NetworkBehaviour
 
         SetPlayerLocation();
 
-        RoomInfoManager.Instance.IncreaseNumberOfLivePlayers(NetworkManager.Singleton.LocalClientId);
+        RoomInfoManager.Instance.ReportJoinedPlayer(GameObjectManager.Instance.GetLocalPlayerId());
     }
 
     private void HandleClientDisconnect(ulong clientId)
@@ -179,14 +206,14 @@ public class GameSceneManager : NetworkBehaviour
         GameObjectManager.Instance.RefreshPlanets();
         GameObjectManager.Instance.RefreshPlayers();
 
-        var player = GameObjectManager.Instance.GetOwnedPlayerById(NetworkManager.Singleton.LocalClientId);
+        var player = GameObjectManager.Instance.GetLocalPlayer();
 
         var planetsOrderById =
             GameObjectManager.Instance.Planets.OrderBy(planet => planet.GetComponent<NetworkObject>().NetworkObjectId)
                 .ToList();
         var minPlanetId = planetsOrderById[0].GetComponent<NetworkObject>().NetworkObjectId;
         var maxPlanetId = planetsOrderById[planetsOrderById.Count - 1].GetComponent<NetworkObject>().NetworkObjectId;
-        //TODO: not used becouse with minPlanetId it is easier to debug, use after debugging
+        //TODO: not used because with minPlanetId it is easier to debug, use after debugging
         var randomPlanetIndex = (ulong) Random.Range(minPlanetId, maxPlanetId);
 
         //TODO: uncomment when enemies added

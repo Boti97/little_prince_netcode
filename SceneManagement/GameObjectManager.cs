@@ -104,7 +104,7 @@ public sealed class GameObjectManager : MonoBehaviour
         return GetOwnedPlayerId() == id;
     }
 
-    private GameObject GetPlayerById(ulong id)
+    public GameObject GetPlayerById(ulong id)
     {
         return Players.Find(player => player.GetComponent<NetworkObject>().NetworkObjectId == id);
     }
@@ -150,6 +150,30 @@ public sealed class GameObjectManager : MonoBehaviour
     {
         CinemachineVirtualCamera.gameObject.SetActive(true);
         CinemachineVirtualCamera.Follow.gameObject.GetComponent<PlayerBehaviour>().enabled = true;
+    }
+
+    public void SetObjectsForPlayerDeath(ulong playerId)
+    {
+        var player = GetPlayerById(playerId);
+        if (player == null)
+        {
+            Debug.LogWarning("Dead player doesn't exist in scene.");
+        }
+        else
+        {
+            Instantiate(headstonePrefab, player.transform.position, Quaternion.identity);
+            player.SetActive(false);
+        }
+    }
+
+    public ulong GetLocalPlayerId()
+    {
+        return CinemachineVirtualCamera.Follow.gameObject.GetComponent<NetworkObject>().NetworkObjectId;
+    }
+
+    public GameObject GetLocalPlayer()
+    {
+        return GetPlayerById(GetLocalPlayerId());
     }
 
     //----------------------------------- ENEMY RELATED METHODS -----------------------------------

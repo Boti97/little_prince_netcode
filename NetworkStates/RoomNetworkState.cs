@@ -1,14 +1,21 @@
+using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
 
 public class RoomNetworkState : NetworkBehaviour
 {
     [SerializeField] private NetworkVariable<int> numberOfLivePlayers = new NetworkVariable<int>(0);
-    [SerializeField] private NetworkVariable<ulong> playerWhoReported = new NetworkVariable<ulong>();
+
+    //holds the last PLAYERID (NetworkObjectId of the little prince gameobject) who died
+    [SerializeField] private NetworkVariable<ulong> diedPlayerId = new NetworkVariable<ulong>();
+
+    //holds the last PLAYERID (NetworkObjectId of the little prince gameobject) who joined
+    [SerializeField] private NetworkVariable<ulong> joinedPlayerId = new NetworkVariable<ulong>();
     [SerializeField] private NetworkVariable<int> roomSeed = new NetworkVariable<int>();
     [SerializeField] private NetworkVariable<bool> isRoomStarted = new NetworkVariable<bool>();
     [SerializeField] private NetworkVariable<bool> isRoomLive = new NetworkVariable<bool>();
 
+    private List<ulong> playerIds = new List<ulong>();
     public int RoomSeed => roomSeed.Value;
     public bool IsRoomLive => isRoomLive.Value;
 
@@ -19,7 +26,15 @@ public class RoomNetworkState : NetworkBehaviour
             return;
         }
 
-        playerWhoReported.OnValueChanged += OnNumberOfLivePlayersChanged;
+        if (IsHost)
+        {
+            diedPlayerId.Value = ulong.MaxValue;
+            joinedPlayerId.Value = ulong.MaxValue;
+        }
+
+        numberOfLivePlayers.OnValueChanged += OnNumberOfLivePlayersChanged;
+        diedPlayerId.OnValueChanged += OnDiedPlayerIdChanged;
+        joinedPlayerId.OnValueChanged += OnJoinedPlayerIdChanged;
     }
 
     public override void OnNetworkDespawn()
@@ -29,45 +44,63 @@ public class RoomNetworkState : NetworkBehaviour
             return;
         }
 
-        playerWhoReported.OnValueChanged -= OnNumberOfLivePlayersChanged;
+        numberOfLivePlayers.OnValueChanged -= OnNumberOfLivePlayersChanged;
+        diedPlayerId.OnValueChanged -= OnDiedPlayerIdChanged;
+        joinedPlayerId.OnValueChanged -= OnJoinedPlayerIdChanged;
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void DecreaseNumberOfLivePlayersServerRpc(ulong playerId)
+    public void ReportPlayerDeathServerRpc(ulong playerId)
     {
-        if (!NetworkManager.ConnectedClients.ContainsKey(playerId))
+        if (!playerIds.Contains(playerId))
         {
             Debug.LogWarning(
-                "Decrease number of players request dismissed, " +
-                "since playerId doesn't belong to a connected player.");
+                "Player death report request dismissed, " +
+                "since playerId doesn't belong to a living player.");
             return;
         }
 
         if (numberOfLivePlayers.Value == 0)
         {
             Debug.LogWarning(
-                "Decrease number of players request dismissed, " +
+                "Player death report request dismissed, " +
                 "since number of live players is zero.");
             return;
         }
 
+        if (diedPlayerId.Value.Equals(playerId))
+        {
+            Debug.LogWarning(
+                "Player death report request dismissed, " +
+                "since it is equals with the last died player id.");
+            return;
+        }
+
         numberOfLivePlayers.Value--;
-        playerWhoReported.Value = playerId;
+        diedPlayerId.Value = playerId;
     }
 
     [ServerRpc(RequireOwnership = false)]
-    public void IncreaseNumberOfLivePlayersServerRpc(ulong playerId)
+    public void ReportPlayerJoinedServerRpc(ulong playerId)
     {
-        if (!NetworkManager.ConnectedClients.ContainsKey(playerId))
+        if (playerIds.Contains(playerId))
         {
             Debug.LogWarning(
-                "Increase number of players request dismissed, " +
-                "since playerId doesn't belong to a connected player.");
+                "Player death report request dismissed, " +
+                "since playerId already belongs to a joined player.");
+            return;
+        }
+
+        if (isRoomStarted.Value && joinedPlayerId.Value.Equals(playerId))
+        {
+            Debug.LogWarning(
+                "Player join report request dismissed, " +
+                "since it is equals with the last died player id.");
             return;
         }
 
         numberOfLivePlayers.Value++;
-        playerWhoReported.Value = playerId;
+        joinedPlayerId.Value = playerId;
     }
 
     [ServerRpc]
@@ -83,40 +116,79 @@ public class RoomNetworkState : NetworkBehaviour
 
         roomSeed.Value = seed;
     }
-    
+
     [ServerRpc]
     public void SetIsRoomLiveServerRpc(bool isLive)
     {
         isRoomLive.Value = isLive;
     }
 
-    private void OnNumberOfLivePlayersChanged(ulong oldPlayerWhoReport, ulong newPlayerWhoReport)
+    private void OnDiedPlayerIdChanged(ulong oldDiedPlayerId, ulong newDiedPlayerId)
     {
         if (!IsClient)
         {
             return;
         }
 
-        //if there were at least one old playerId -> not the first player joining
-        //but the number of players alive is 1
-        //and it is not us who reports (we cannot report that someone else died, so we won with our report)
-        //we report on two occasions:
-        // - when we enter the game (first condition!)
-        // - when we die
-        if (numberOfLivePlayers.Value == 1 && isRoomStarted.Value &&
-            !newPlayerWhoReport.Equals(NetworkManager.Singleton.LocalClientId))
+        if (numberOfLivePlayers.Value == 1
+            && isRoomStarted.Value
+            && !newDiedPlayerId.Equals(GameObjectManager.Instance.GetLocalPlayerId()))
         {
+            Debug.Log("Player died, and only one player is alive!");
             GameObjectManager.Instance.YouWonText.SetActive(true);
             GameObjectManager.Instance.DisableLocalPlayerMovement();
         }
-        else if (IsServer)
+        else
+        {
+            Debug.Log("Player died!");
+        }
+
+        //TODO: add popup 
+        GameObjectManager.Instance.SetObjectsForPlayerDeath(newDiedPlayerId);
+        playerIds.Remove(newDiedPlayerId);
+    }
+
+    private void OnNumberOfLivePlayersChanged(int oldNumberOfLivePlayers, int newNumberOfLivePlayers)
+    {
+        if (!IsClient)
+        {
+            return;
+        }
+
+        if (oldNumberOfLivePlayers > newNumberOfLivePlayers
+            && newNumberOfLivePlayers == 1
+            && isRoomStarted.Value
+            && !diedPlayerId.Value.Equals(GameObjectManager.Instance.GetLocalPlayerId())
+            && !GameObjectManager.Instance.YouWonText.activeSelf
+            && !GameObjectManager.Instance.GameOverText.activeSelf)
+        {
+            Debug.Log("Player died, and only one player is alive!");
+            //TODO: add popup 
+            GameObjectManager.Instance.YouWonText.SetActive(true);
+            GameObjectManager.Instance.DisableLocalPlayerMovement();
+        }
+    }
+
+    private void OnJoinedPlayerIdChanged(ulong oldJoinedPlayerId, ulong newJoinedPlayerId)
+    {
+        if (!IsClient)
+        {
+            return;
+        }
+
+        //if it is false, it means we are the first player 
+        if (!isRoomStarted.Value)
         {
             isRoomStarted.Value = true;
             Debug.Log("First player joined!");
         }
         else
         {
-            Debug.Log("Player reported.");
+            Debug.Log("Player joined!");
         }
+
+        //TODO: add popup
+        playerIds.Add(newJoinedPlayerId);
+        GameObjectManager.Instance.RefreshPlayers();
     }
 }

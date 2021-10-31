@@ -45,11 +45,13 @@ public class GameMenuManager : NetworkBehaviour
                     NetworkManager.Singleton.DisconnectClient(clientId);
                 }
 
-                NetworkManager.Singleton.Shutdown();
+                Destroy(GameObject.FindWithTag("NetworkManager"));
+                //NetworkManager.Singleton.Shutdown();
             }
             else
             {
-                RoomInfoManager.Instance.DecreaseNumberOfLivePlayers(NetworkManager.Singleton.LocalClientId);
+                RoomInfoManager.Instance.ReportPlayerDeath(GameObjectManager.Instance.GetLocalPlayerId());
+                Destroy(GameObject.FindWithTag("NetworkManager"));
             }
         }
         catch (NullReferenceException exception)
