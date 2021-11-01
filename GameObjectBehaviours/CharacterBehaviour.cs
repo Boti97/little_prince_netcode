@@ -44,7 +44,7 @@ public abstract class CharacterBehaviour : NetworkBehaviour
         HandleAttack();
     }
 
-    protected void LateUpdate()
+    protected void FixedUpdate()
     {
         if (!IsOwner) return;
 
@@ -66,7 +66,8 @@ public abstract class CharacterBehaviour : NetworkBehaviour
                 turnSmoothTime * NetworkManager.Singleton.ServerTime.FixedDeltaTime);
             model.rotation = rotation;
             GetComponent<Rigidbody>()
-                .MovePosition(GetComponent<Rigidbody>().position + (finalDir * moveSpeed) * Time.deltaTime);
+                .MovePosition(GetComponent<Rigidbody>().position +
+                              (finalDir * moveSpeed) * NetworkManager.Singleton.ServerTime.FixedDeltaTime);
 
             characterNetworkState.SetModelRotationServerRpc(rotation);
 
