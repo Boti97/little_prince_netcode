@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using Cinemachine;
+using TMPro;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.UI;
@@ -17,10 +18,12 @@ public sealed class GameObjectManager : MonoBehaviour
     public Slider LoadingBar { get; private set; }
     public GameObject GameOverText { get; private set; }
     public GameObject YouWonText { get; private set; }
+    public TMP_Text ScoreText { get; private set; }
     public CinemachineFreeLook CinemachineVirtualCamera { get; private set; }
     public List<GameObject> Planets { get; private set; }
     public List<GameObject> Players { get; private set; }
     private List<GameObject> Enemies { get; set; }
+    private int Score { get; set; }
 
     public static GameObjectManager Instance
     {
@@ -69,6 +72,8 @@ public sealed class GameObjectManager : MonoBehaviour
 
         Enemies = new List<GameObject>();
         Enemies.AddRange(GameObject.FindGameObjectsWithTag("Enemy"));
+
+        ScoreText = GameObject.FindWithTag("Score").GetComponent<TMP_Text>();
 
         DeactivateUnnecessaryGameObjects();
     }
@@ -218,6 +223,7 @@ public sealed class GameObjectManager : MonoBehaviour
 
     public void RefreshPlanets()
     {
+        Planets.Clear();
         Planets.AddRange(GameObject.FindGameObjectsWithTag("Planet"));
     }
 
@@ -239,18 +245,28 @@ public sealed class GameObjectManager : MonoBehaviour
         return GameOverText.activeSelf;
     }
 
-    public void EnablePlayerBars()
+    public void EnableUnnecessaryPlayerUIObjects()
     {
         ThrustBar.gameObject.SetActive(true);
         HealthBar.gameObject.SetActive(true);
         StaminaBar.gameObject.SetActive(true);
+        ScoreText.gameObject.SetActive(true);
     }
 
-    public void DisablePlayerBars()
+    public void DisableUnnecessaryPlayerUIObjects()
     {
         ThrustBar.gameObject.SetActive(false);
         HealthBar.gameObject.SetActive(false);
         StaminaBar.gameObject.SetActive(false);
+        ScoreText.gameObject.SetActive(false);
+    }
+
+    public void IncreaseScore()
+    {
+        //TODO: implement check and game end
+
+        Score++;
+        ScoreText.text = "Score: " + Score;
     }
 
     //----------------------------------- PRIVATE METHODS -----------------------------------

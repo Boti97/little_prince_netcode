@@ -7,7 +7,7 @@ public abstract class CharacterBehaviour : NetworkBehaviour
 
     [SerializeField] protected float thrustPower = 50f;
     [SerializeField] protected float sprintSpeed = 30f;
-    [SerializeField] protected float walkSpeed;
+    [SerializeField] protected float walkSpeed = 10f;
     [SerializeField] protected float jumpForce = 2200f;
     [SerializeField] protected LayerMask groundedMask;
 

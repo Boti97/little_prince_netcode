@@ -8,6 +8,11 @@ public class GravityBody : NetworkBehaviour
 {
     private Dictionary<ulong, KeyValuePair<GravityAttractor, float>> gravityAttractorDictionary;
 
+    private void Start()
+    {
+        gravityAttractorDictionary = new Dictionary<ulong, KeyValuePair<GravityAttractor, float>>();
+    }
+
     public void FixedUpdate()
     {
         if (!IsOwner) return;

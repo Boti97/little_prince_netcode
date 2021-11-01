@@ -7,7 +7,8 @@ public class ObjectiveBehaviour : MonoBehaviour
         if (player.gameObject.tag.Equals("Player"))
         {
             player.gameObject.GetComponent<PlayerBehaviour>().AddHealth(0.2f);
-            Destroy(gameObject);
+            GameObjectManager.Instance.IncreaseScore();
+            gameObject.GetComponent<ObjectiveNetworkState>().ObjectiveAcquiredServerRpc();
         }
     }
 }

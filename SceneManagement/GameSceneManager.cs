@@ -11,8 +11,8 @@ using Random = UnityEngine.Random;
 public class GameSceneManager : NetworkBehaviour
 {
     [SerializeField] private NetworkObject planetPrefab;
-    [SerializeField] private GameObject leadSoldierPrefab;
-    [SerializeField] private GameObject objectivePrefab;
+    [SerializeField] private NetworkObject leadSoldierPrefab;
+    [SerializeField] private NetworkObject objectivePrefab;
     [SerializeField] private NetworkObject roomInfoManagerPrefab;
 
     [SerializeField] private int baseSeed;
@@ -32,7 +32,7 @@ public class GameSceneManager : NetworkBehaviour
 
         //we don't want to see or do anything with the player until the room is set up
         GameObjectManager.Instance.DisableLocalPlayer();
-        GameObjectManager.Instance.DisablePlayerBars();
+        GameObjectManager.Instance.DisableUnnecessaryPlayerUIObjects();
 
         if (chosenJoinMode.Equals(JoinMode.Host))
         {
@@ -160,6 +160,8 @@ public class GameSceneManager : NetworkBehaviour
         SetPlayerLocation();
 
         RoomInfoManager.Instance.ReportJoinedPlayer(GameObjectManager.Instance.GetLocalPlayerId());
+
+        SpawnEnemiesAndObjectives();
     }
 
     private IEnumerator SetUpClient()
@@ -201,7 +203,7 @@ public class GameSceneManager : NetworkBehaviour
     {
         GameObjectManager.Instance.EnableLocalPlayer();
         GameObjectManager.Instance.LoadingBar.gameObject.SetActive(false);
-        GameObjectManager.Instance.EnablePlayerBars();
+        GameObjectManager.Instance.EnableUnnecessaryPlayerUIObjects();
 
         GameObjectManager.Instance.RefreshPlanets();
         GameObjectManager.Instance.RefreshPlayers();
@@ -222,7 +224,7 @@ public class GameSceneManager : NetworkBehaviour
         var spawnPos = GameObjectManager.Instance.Planets
             .Find(planet => planet.GetComponent<NetworkObject>().NetworkObjectId == minPlanetId).transform
             .position;
-        spawnPos.x += 30;
+        spawnPos.x += 35;
 
         player.transform.position = spawnPos;
     }
@@ -230,44 +232,18 @@ public class GameSceneManager : NetworkBehaviour
     //----------------------------------- ENEMY SETUP METHODS -----------------------------------
     private void SpawnEnemiesAndObjectives()
     {
-        //Vector3 enemySpawnPos;
-
-        //enemySpawnPos = GameObjectManager.Instance.Planets[0].transform.position;
-        //enemySpawnPos.x += 30;
-        //BoltNetwork.Instantiate(leadSoldierPrefab, enemySpawnPos, Quaternion.identity);
-
         GameObjectManager.Instance.Planets.ForEach(planet =>
         {
-            var numberOfEnemies = Random.Range(1, 4);
-            Vector3 enemySpawnPos;
-            if (numberOfEnemies > 0)
-            {
-                enemySpawnPos = planet.transform.position;
-                enemySpawnPos.x += 30;
-                //BoltNetwork.Instantiate(leadSoldierPrefab, enemySpawnPos, Quaternion.identity);
-            }
+            var planetPosition = planet.transform.position;
+            var enemySpawnPos = planetPosition;
+            enemySpawnPos.x += 35;
+            var enemy = Instantiate(leadSoldierPrefab, enemySpawnPos, Quaternion.identity);
+            enemy.SpawnWithOwnership(NetworkManager.Singleton.LocalClientId);
 
-            if (numberOfEnemies > 1)
-            {
-                enemySpawnPos = planet.transform.position;
-                enemySpawnPos.y += 30;
-                //BoltNetwork.Instantiate(leadSoldierPrefab, enemySpawnPos, Quaternion.identity);
-            }
-
-            if (numberOfEnemies > 2)
-            {
-                enemySpawnPos = planet.transform.position;
-                enemySpawnPos.z += 30;
-                //BoltNetwork.Instantiate(leadSoldierPrefab, enemySpawnPos, Quaternion.identity);
-            }
-
-            var probabilityOfObjectives = Random.Range(1, 101);
-            if (probabilityOfObjectives > 50)
-            {
-                var objectiveSpawnPos = planet.transform.position;
-                objectiveSpawnPos.z += 30;
-                //BoltNetwork.Instantiate(objectivePrefab, objectiveSpawnPos, Quaternion.identity);
-            }
+            var objectiveSpawnPos = planetPosition;
+            objectiveSpawnPos.x += 35;
+            var objective = Instantiate(objectivePrefab, objectiveSpawnPos, Quaternion.identity);
+            objective.SpawnWithOwnership(NetworkManager.Singleton.LocalClientId);
         });
 
         GameObjectManager.Instance.RefreshEnemies();
