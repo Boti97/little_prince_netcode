@@ -5,8 +5,25 @@ public class EnemyBehaviour : CharacterBehaviour
 {
     [SerializeField] private float pushPower;
     [SerializeField] private float pushPowerAmplifier;
+    private bool alreadyPushedPlayer;
     private int numberOfPushes = 0;
     private GameObject playerToFollow;
+
+    private void OnTriggerEnter(Collider player)
+    {
+        if (alreadyPushedPlayer || !player.gameObject.tag.Equals("Player")) return;
+
+        player.GetComponent<PlayerBehaviour>().PushPlayerClientRpc(model.forward, pushPower * pushPowerAmplifier);
+        pushPowerAmplifier += 0.2f;
+        alreadyPushedPlayer = true;
+    }
+
+    private void OnTriggerExit(Collider player)
+    {
+        if (!player.gameObject.tag.Equals("Player")) return;
+
+        alreadyPushedPlayer = false;
+    }
 
     /// <summary>
     /// The enemy's moving direction is always towards a player so in this method we choose player.
@@ -57,17 +74,14 @@ public class EnemyBehaviour : CharacterBehaviour
         if (playerToFollow != null && IsPlayerOnSamePlanet(playerToFollow))
         {
             //if we close enough we push them into space
-            if (Vector3.Distance(playerToFollow.transform.position, transform.position) < 1.5f)
+            if (Vector3.Distance(playerToFollow.transform.position, transform.position) < 2f)
             {
-                //TODO: implement character pushed event
-                Debug.LogWarning("SendCharacterPushedEvent is not implemented!");
-
-                numberOfPushes++;
                 moveDir = Vector3.zero;
             }
             else
             {
-                finalDir = Vector3.ProjectOnPlane((playerToFollow.transform.position - transform.position).normalized,
+                finalDir = Vector3.ProjectOnPlane(
+                    (playerToFollow.transform.position - transform.position).normalized,
                     transform.up).normalized;
                 moveDir = Vector3.forward;
             }
@@ -77,6 +91,7 @@ public class EnemyBehaviour : CharacterBehaviour
             moveDir = Vector3.zero;
         }
     }
+
 
     private bool IsPlayerOnSamePlanet(GameObject player)
     {
@@ -90,13 +105,16 @@ public class EnemyBehaviour : CharacterBehaviour
 
     protected override void CheckHealth()
     {
+        if (!IsOwner) return;
+
         if (gravityBody.AttractorCount() != 0) return;
 
         health -= 0.002f;
         if (health < 0f)
         {
-            //TODO: implement death
-            Debug.LogWarning("Enemy death is not implemented!");
+            Debug.LogWarning("Enemy died!");
+            GameObjectManager.Instance.CreateHeadstoneOnPositions(transform.position);
+            Destroy(gameObject);
         }
     }
 }

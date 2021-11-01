@@ -13,8 +13,7 @@ public class CharacterNetworkState : NetworkBehaviour
     private readonly NetworkVariable<int> isJumped = new NetworkVariable<int>();
     private readonly NetworkVariable<int> isWalking = new NetworkVariable<int>();
     private readonly NetworkVariable<Quaternion> modelRotation = new NetworkVariable<Quaternion>();
-
-
+    
     private Animator animator;
 
     private Transform model;

@@ -15,7 +15,7 @@ public class GameSceneManager : NetworkBehaviour
     [SerializeField] private NetworkObject objectivePrefab;
     [SerializeField] private NetworkObject roomInfoManagerPrefab;
 
-    [SerializeField] private int baseSeed;
+    private int baseSeed;
     private bool isRoomLive = false;
 
     private List<Vector3> planetPositions;
@@ -87,7 +87,7 @@ public class GameSceneManager : NetworkBehaviour
         {
             yield return new WaitForSeconds(5);
 
-            if (RoomInfoManager.Instance == null || !RoomInfoManager.Instance.IsRoomLive())
+            if (RoomInfoManager.Instance == null || !RoomInfoManager.Instance.RoomNetworkState.IsRoomLive)
             {
                 Debug.LogWarning("Room is not alive.");
                 Destroy(GameObject.FindWithTag("NetworkManager"));
@@ -135,12 +135,12 @@ public class GameSceneManager : NetworkBehaviour
         var roomInfoManagerObj = Instantiate(roomInfoManagerPrefab, Vector3.zero, Quaternion.identity);
         roomInfoManagerObj.SpawnWithOwnership(NetworkManager.Singleton.ServerClientId);
 
-        RoomInfoManager.Instance.SetIsRoomLive(true);
+        RoomInfoManager.Instance.RoomNetworkState.SetIsRoomLiveServerRpc(true);
 
         //create new random seed
         baseSeed = Random.Range(0, 100000);
         //send new seed to server
-        RoomInfoManager.Instance.SetRoomSeed(baseSeed);
+        RoomInfoManager.Instance.RoomNetworkState.SetRoomSeedServerRpc(baseSeed);
 
         //generate planet positions, and planet surfaces
         yield return StartCoroutine(GetPlanetPositions());
@@ -157,11 +157,13 @@ public class GameSceneManager : NetworkBehaviour
         //add name and surface to planets
         SetUpPlanets(planetsOrderedById, planetSurfaces);
 
-        SetPlayerLocation();
+        var playerLocation = SetPlayerLocation();
 
-        RoomInfoManager.Instance.ReportJoinedPlayer(GameObjectManager.Instance.GetLocalPlayerId());
+        RoomInfoManager.Instance.RoomNetworkState.ReportPlayerJoinedServerRpc(GameObjectManager.Instance
+            .GetLocalPlayerId());
+        //RoomInfoManager.Instance.ReportJoinedPlayer(GameObjectManager.Instance.GetLocalPlayerId());
 
-        SpawnEnemiesAndObjectives();
+        SpawnEnemiesAndObjectives(playerLocation);
     }
 
     private IEnumerator SetUpClient()
@@ -185,7 +187,8 @@ public class GameSceneManager : NetworkBehaviour
 
         SetPlayerLocation();
 
-        RoomInfoManager.Instance.ReportJoinedPlayer(GameObjectManager.Instance.GetLocalPlayerId());
+        RoomInfoManager.Instance.RoomNetworkState.ReportPlayerJoinedServerRpc(GameObjectManager.Instance
+            .GetLocalPlayerId());
     }
 
     private void HandleClientDisconnect(ulong clientId)
@@ -198,8 +201,11 @@ public class GameSceneManager : NetworkBehaviour
     }
     //----------------------------------- PLAYER SETUP METHODS -----------------------------------
 
-    //move player to a random starting position
-    private void SetPlayerLocation()
+    /// <summary>
+    /// Move player to a random planet
+    /// </summary>
+    /// <returns>the network id of the planet the player was moved to</returns>
+    private ulong SetPlayerLocation()
     {
         GameObjectManager.Instance.EnableLocalPlayer();
         GameObjectManager.Instance.LoadingBar.gameObject.SetActive(false);
@@ -216,35 +222,41 @@ public class GameSceneManager : NetworkBehaviour
         var minPlanetId = planetsOrderById[0].GetComponent<NetworkObject>().NetworkObjectId;
         var maxPlanetId = planetsOrderById[planetsOrderById.Count - 1].GetComponent<NetworkObject>().NetworkObjectId;
         //TODO: not used because with minPlanetId it is easier to debug, use after debugging
-        var randomPlanetIndex = (ulong) Random.Range(minPlanetId, maxPlanetId);
+        //var randomPlanetIndex = (ulong) Random.Range(minPlanetId, maxPlanetId);
+        var randomPlanetIndex = minPlanetId;
 
         //TODO: uncomment when enemies added
         //GameObjectManager.Instance.RemoveEnemiesOnPlanet(GameObjectManager.Instance.Planets[randomPlanetIndex].GetComponentInChildren<PlanetNetworkState>().PlanetId);
 
         var spawnPos = GameObjectManager.Instance.Planets
-            .Find(planet => planet.GetComponent<NetworkObject>().NetworkObjectId == minPlanetId).transform
+            .Find(planet => planet.GetComponent<NetworkObject>().NetworkObjectId == randomPlanetIndex).transform
             .position;
         spawnPos.x += 35;
 
         player.transform.position = spawnPos;
+
+        return randomPlanetIndex;
     }
 
     //----------------------------------- ENEMY SETUP METHODS -----------------------------------
-    private void SpawnEnemiesAndObjectives()
+    private void SpawnEnemiesAndObjectives(ulong planetIdToSkip)
     {
-        GameObjectManager.Instance.Planets.ForEach(planet =>
-        {
-            var planetPosition = planet.transform.position;
-            var enemySpawnPos = planetPosition;
-            enemySpawnPos.x += 35;
-            var enemy = Instantiate(leadSoldierPrefab, enemySpawnPos, Quaternion.identity);
-            enemy.SpawnWithOwnership(NetworkManager.Singleton.LocalClientId);
+        GameObjectManager.Instance.Planets
+            .Where(planet => planet.GetComponent<NetworkObject>().NetworkObjectId != planetIdToSkip)
+            .ToList()
+            .ForEach(planet =>
+            {
+                var planetPosition = planet.transform.position;
+                var enemySpawnPos = planetPosition;
+                enemySpawnPos.x += 35;
+                var enemy = Instantiate(leadSoldierPrefab, enemySpawnPos, Quaternion.identity);
+                enemy.SpawnWithOwnership(NetworkManager.Singleton.LocalClientId);
 
-            var objectiveSpawnPos = planetPosition;
-            objectiveSpawnPos.x += 35;
-            var objective = Instantiate(objectivePrefab, objectiveSpawnPos, Quaternion.identity);
-            objective.SpawnWithOwnership(NetworkManager.Singleton.LocalClientId);
-        });
+                var objectiveSpawnPos = planetPosition;
+                objectiveSpawnPos.x += 35;
+                var objective = Instantiate(objectivePrefab, objectiveSpawnPos, Quaternion.identity);
+                objective.SpawnWithOwnership(NetworkManager.Singleton.LocalClientId);
+            });
 
         GameObjectManager.Instance.RefreshEnemies();
     }

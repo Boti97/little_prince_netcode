@@ -50,7 +50,7 @@ public class GameMenuManager : NetworkBehaviour
             }
             else
             {
-                RoomInfoManager.Instance.ReportPlayerDeath(GameObjectManager.Instance.GetLocalPlayerId());
+                RoomInfoManager.Instance.RoomNetworkState.ReportPlayerDeathServerRpc(GameObjectManager.Instance.GetLocalPlayerId());
                 Destroy(GameObject.FindWithTag("NetworkManager"));
             }
         }

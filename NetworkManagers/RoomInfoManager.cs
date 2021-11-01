@@ -36,30 +36,4 @@ public sealed class RoomInfoManager : MonoBehaviour
             Destroy(gameObject);
         }
     }
-
-    //----------------------------------- NETWORK METHODS -----------------------------------
-    public void ReportPlayerDeath(ulong playerWhoReported)
-    {
-        RoomNetworkState.ReportPlayerDeathServerRpc(playerWhoReported);
-    }
-
-    public void ReportJoinedPlayer(ulong playerWhoReported)
-    {
-        RoomNetworkState.ReportPlayerJoinedServerRpc(playerWhoReported);
-    }
-
-    public void SetRoomSeed(int roomSeed)
-    {
-        RoomNetworkState.SetRoomSeedServerRpc(roomSeed);
-    }
-
-    public void SetIsRoomLive(bool isLive)
-    {
-        RoomNetworkState.SetIsRoomLiveServerRpc(isLive);
-    }
-
-    public bool IsRoomLive()
-    {
-        return RoomNetworkState.IsRoomLive;
-    }
 }

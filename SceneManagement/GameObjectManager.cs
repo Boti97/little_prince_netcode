@@ -10,7 +10,7 @@ public sealed class GameObjectManager : MonoBehaviour
 {
     private static readonly object Padlock = new object();
     private static GameObjectManager _instance;
-    [SerializeField] private GameObject headstonePrefab;
+    [SerializeField] private NetworkObject headstonePrefab;
 
     public Slider StaminaBar { get; private set; }
     public Slider HealthBar { get; private set; }
@@ -18,12 +18,12 @@ public sealed class GameObjectManager : MonoBehaviour
     public Slider LoadingBar { get; private set; }
     public GameObject GameOverText { get; private set; }
     public GameObject YouWonText { get; private set; }
-    public TMP_Text ScoreText { get; private set; }
     public CinemachineFreeLook CinemachineVirtualCamera { get; private set; }
     public List<GameObject> Planets { get; private set; }
     public List<GameObject> Players { get; private set; }
     private List<GameObject> Enemies { get; set; }
     private int Score { get; set; }
+    private TMP_Text ScoreText { get; set; }
 
     public static GameObjectManager Instance
     {
@@ -157,7 +157,7 @@ public sealed class GameObjectManager : MonoBehaviour
         CinemachineVirtualCamera.Follow.gameObject.GetComponent<PlayerBehaviour>().enabled = true;
     }
 
-    public void SetObjectsForPlayerDeath(ulong playerId)
+    public void CreateHeadstoneForPlayer(ulong playerId)
     {
         var player = GetPlayerById(playerId);
         if (player == null)
@@ -166,9 +166,27 @@ public sealed class GameObjectManager : MonoBehaviour
         }
         else
         {
-            Instantiate(headstonePrefab, player.transform.position, Quaternion.identity);
+            CreateHeadstoneOnPositions(player.transform.position);
+        }
+    }
+
+    public void DisablePlayerById(ulong playerId)
+    {
+        var player = GetPlayerById(playerId);
+        if (player == null)
+        {
+            Debug.LogWarning("Player doesn't exist in scene.");
+        }
+        else
+        {
             player.SetActive(false);
         }
+    }
+
+    public void CreateHeadstoneOnPositions(Vector3 position)
+    {
+        var headstone = Instantiate(headstonePrefab, position, Quaternion.identity);
+        headstone.SpawnWithOwnership(NetworkManager.Singleton.LocalClientId);
     }
 
     public ulong GetLocalPlayerId()

@@ -11,7 +11,7 @@ public abstract class CharacterBehaviour : NetworkBehaviour
     [SerializeField] protected float jumpForce = 2200f;
     [SerializeField] protected LayerMask groundedMask;
 
-    private readonly float turnSmoothTime = 8f;
+    private const float TurnSmoothTime = 8f;
     private Animator animator;
     private CharacterNetworkState characterNetworkState;
     protected Vector3 finalDir;
@@ -21,7 +21,8 @@ public abstract class CharacterBehaviour : NetworkBehaviour
     protected bool isJumpEnabled;
     protected bool isJumping;
     private bool isMoving;
-    private Transform model;
+
+    protected Transform model;
     protected Vector3 moveDir;
     protected float moveSpeed = 8f;
     protected int numberOfJumps = 0;
@@ -63,7 +64,7 @@ public abstract class CharacterBehaviour : NetworkBehaviour
             var targetRotation = Quaternion.LookRotation(finalDir, transform.up);
             var rotation = model.rotation;
             rotation = Quaternion.Slerp(rotation, targetRotation,
-                turnSmoothTime * NetworkManager.Singleton.ServerTime.FixedDeltaTime);
+                TurnSmoothTime * NetworkManager.Singleton.ServerTime.FixedDeltaTime);
             model.rotation = rotation;
             GetComponent<Rigidbody>()
                 .MovePosition(GetComponent<Rigidbody>().position +

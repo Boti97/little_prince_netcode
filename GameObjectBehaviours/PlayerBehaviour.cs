@@ -18,6 +18,12 @@ public class PlayerBehaviour : CharacterBehaviour
         }
     }
 
+    [ClientRpc]
+    public void PushPlayerClientRpc(Vector3 pushDirection, float pushPower)
+    {
+        GetComponent<Rigidbody>().AddForce(pushDirection * pushPower, ForceMode.Impulse);
+    }
+
     protected override void CalculateMovingDirection()
     {
         var horizontal = Input.GetAxisRaw("Horizontal");
@@ -152,7 +158,8 @@ public class PlayerBehaviour : CharacterBehaviour
             //GameObjectManager.Instance.SetObjectsForPlayerDeath(gameObject.GetComponent<NetworkObject>().NetworkObjectId);
             GameObjectManager.Instance.GameOverText.SetActive(true);
 
-            RoomInfoManager.Instance.ReportPlayerDeath(GameObjectManager.Instance.GetLocalPlayerId());
+            RoomInfoManager.Instance.RoomNetworkState.ReportPlayerDeathServerRpc(GameObjectManager.Instance
+                .GetLocalPlayerId());
         }
     }
 }

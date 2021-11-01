@@ -76,6 +76,7 @@ public class RoomNetworkState : NetworkBehaviour
             return;
         }
 
+        GameObjectManager.Instance.CreateHeadstoneForPlayer(playerId);
         numberOfLivePlayers.Value--;
         diedPlayerId.Value = playerId;
     }
@@ -144,7 +145,7 @@ public class RoomNetworkState : NetworkBehaviour
         }
 
         //TODO: add popup 
-        GameObjectManager.Instance.SetObjectsForPlayerDeath(newDiedPlayerId);
+        GameObjectManager.Instance.DisablePlayerById(newDiedPlayerId);
         playerIds.Remove(newDiedPlayerId);
     }
 
