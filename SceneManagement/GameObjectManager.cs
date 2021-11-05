@@ -260,7 +260,7 @@ public sealed class GameObjectManager : MonoBehaviour
     //----------------------------------- OTHER METHODS -----------------------------------
     public bool IsGameOver()
     {
-        return GameOverText.activeSelf;
+        return GameOverText.activeSelf || YouWonText.activeSelf;
     }
 
     public void EnableUnnecessaryPlayerUIObjects()

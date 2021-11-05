@@ -37,6 +37,8 @@ public class StartSceneManager : MonoBehaviour
         {
             StartCoroutine(PopUpEvent(SceneLoadData.ReasonForSceneLoad));
         }
+        
+        Destroy(GameObject.FindWithTag("NetworkManager"));
     }
 
     private IEnumerator PopUpEvent(string message)

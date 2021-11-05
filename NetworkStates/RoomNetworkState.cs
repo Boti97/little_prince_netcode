@@ -133,7 +133,8 @@ public class RoomNetworkState : NetworkBehaviour
 
         if (numberOfLivePlayers.Value == 1
             && isRoomStarted.Value
-            && !newDiedPlayerId.Equals(GameObjectManager.Instance.GetLocalPlayerId()))
+            && !newDiedPlayerId.Equals(GameObjectManager.Instance.GetLocalPlayerId())
+            && !GameObjectManager.Instance.IsGameOver())
         {
             Debug.Log("Player died, and only one player is alive!");
             GameObjectManager.Instance.YouWonText.SetActive(true);
@@ -160,8 +161,7 @@ public class RoomNetworkState : NetworkBehaviour
             && newNumberOfLivePlayers == 1
             && isRoomStarted.Value
             && !diedPlayerId.Value.Equals(GameObjectManager.Instance.GetLocalPlayerId())
-            && !GameObjectManager.Instance.YouWonText.activeSelf
-            && !GameObjectManager.Instance.GameOverText.activeSelf)
+            && !GameObjectManager.Instance.IsGameOver())
         {
             Debug.Log("Player died, and only one player is alive!");
             //TODO: add popup 

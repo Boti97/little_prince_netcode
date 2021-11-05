@@ -19,8 +19,11 @@ public class GameMenuManager : NetworkBehaviour
             Cursor.lockState = CursorLockMode.Confined;
             Cursor.visible = false;
             menu.SetActive(false);
-            //let the player move again
-            GameObjectManager.Instance.EnableLocalPlayerMovement();
+            //only let the player move again if the game is not over
+            if (!GameObjectManager.Instance.IsGameOver())
+            {
+                GameObjectManager.Instance.EnableLocalPlayerMovement();
+            }
         }
         else
         {
@@ -50,8 +53,8 @@ public class GameMenuManager : NetworkBehaviour
             }
             else
             {
-                RoomInfoManager.Instance.RoomNetworkState.ReportPlayerDeathServerRpc(GameObjectManager.Instance.GetLocalPlayerId());
-                Destroy(GameObject.FindWithTag("NetworkManager"));
+                RoomInfoManager.Instance.RoomNetworkState.ReportPlayerDeathServerRpc(GameObjectManager.Instance
+                    .GetLocalPlayerId());
             }
         }
         catch (NullReferenceException exception)
@@ -69,7 +72,7 @@ public class GameMenuManager : NetworkBehaviour
         Cursor.visible = false;
         try
         {
-            if (NetworkManager.Singleton != null)
+            if (NetworkManager.Singleton != null && !GameObjectManager.Instance.IsGameOver())
             {
                 GameObjectManager.Instance.EnableLocalPlayerMovement();
             }
