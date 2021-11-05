@@ -281,10 +281,13 @@ public sealed class GameObjectManager : MonoBehaviour
 
     public void IncreaseScore()
     {
-        //TODO: implement check and game end
-
         Score++;
         ScoreText.text = "Score: " + Score;
+
+        if (Score == 10)
+        {
+            RoomInfoManager.Instance.RoomNetworkState.ReportGameWinnerServerRpc(GetLocalPlayerId());
+        }
     }
 
     //----------------------------------- PRIVATE METHODS -----------------------------------

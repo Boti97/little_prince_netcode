@@ -11,6 +11,7 @@ public class RoomNetworkState : NetworkBehaviour
 
     //holds the last PLAYERID (NetworkObjectId of the little prince gameobject) who joined
     [SerializeField] private NetworkVariable<ulong> joinedPlayerId = new NetworkVariable<ulong>();
+    [SerializeField] private NetworkVariable<ulong> winnerPlayerId = new NetworkVariable<ulong>();
     [SerializeField] private NetworkVariable<int> roomSeed = new NetworkVariable<int>();
     [SerializeField] private NetworkVariable<bool> isRoomStarted = new NetworkVariable<bool>();
     [SerializeField] private NetworkVariable<bool> isRoomLive = new NetworkVariable<bool>();
@@ -30,11 +31,13 @@ public class RoomNetworkState : NetworkBehaviour
         {
             diedPlayerId.Value = ulong.MaxValue;
             joinedPlayerId.Value = ulong.MaxValue;
+            winnerPlayerId.Value = ulong.MaxValue;
         }
 
         numberOfLivePlayers.OnValueChanged += OnNumberOfLivePlayersChanged;
         diedPlayerId.OnValueChanged += OnDiedPlayerIdChanged;
         joinedPlayerId.OnValueChanged += OnJoinedPlayerIdChanged;
+        winnerPlayerId.OnValueChanged += OnWinnerPlayerIdChanged;
     }
 
     public override void OnNetworkDespawn()
@@ -124,6 +127,18 @@ public class RoomNetworkState : NetworkBehaviour
         isRoomLive.Value = isLive;
     }
 
+    [ServerRpc(RequireOwnership = false)]
+    public void ReportGameWinnerServerRpc(ulong winnerId)
+    {
+        if (winnerPlayerId.Value != ulong.MaxValue)
+        {
+            Debug.LogWarning("Someone already reported a winner.");
+            return;
+        }
+
+        winnerPlayerId.Value = winnerId;
+    }
+
     private void OnDiedPlayerIdChanged(ulong oldDiedPlayerId, ulong newDiedPlayerId)
     {
         if (!IsClient)
@@ -136,13 +151,13 @@ public class RoomNetworkState : NetworkBehaviour
             && !newDiedPlayerId.Equals(GameObjectManager.Instance.GetLocalPlayerId())
             && !GameObjectManager.Instance.IsGameOver())
         {
-            Debug.Log("Player died, and only one player is alive!");
+            Debug.Log("Player died, and only one player is alive.");
             GameObjectManager.Instance.YouWonText.SetActive(true);
             GameObjectManager.Instance.DisableLocalPlayerMovement();
         }
         else
         {
-            Debug.Log("Player died!");
+            Debug.Log("Player died.");
         }
 
         //TODO: add popup 
@@ -163,7 +178,7 @@ public class RoomNetworkState : NetworkBehaviour
             && !diedPlayerId.Value.Equals(GameObjectManager.Instance.GetLocalPlayerId())
             && !GameObjectManager.Instance.IsGameOver())
         {
-            Debug.Log("Player died, and only one player is alive!");
+            Debug.Log("Player died, and only one player is alive.");
             //TODO: add popup 
             GameObjectManager.Instance.YouWonText.SetActive(true);
             GameObjectManager.Instance.DisableLocalPlayerMovement();
@@ -181,15 +196,46 @@ public class RoomNetworkState : NetworkBehaviour
         if (!isRoomStarted.Value)
         {
             isRoomStarted.Value = true;
-            Debug.Log("First player joined!");
+            Debug.Log("First player joined.");
         }
         else
         {
-            Debug.Log("Player joined!");
+            Debug.Log("Player joined.");
         }
 
         //TODO: add popup
         playerIds.Add(newJoinedPlayerId);
         GameObjectManager.Instance.RefreshPlayers();
+    }
+
+    private void OnWinnerPlayerIdChanged(ulong oldWinnerPlayerId, ulong newWinnerPlayerId)
+    {
+        if (!IsClient)
+        {
+            return;
+        }
+
+        if (oldWinnerPlayerId != ulong.MaxValue)
+        {
+            Debug.LogWarning("Someone already reported a winner.");
+            return;
+        }
+
+        if (isRoomStarted.Value
+            && newWinnerPlayerId.Equals(GameObjectManager.Instance.GetLocalPlayerId())
+            && !GameObjectManager.Instance.IsGameOver())
+        {
+            Debug.Log("Player with " + newWinnerPlayerId + " id won the game.");
+            //TODO: add popup 
+            GameObjectManager.Instance.YouWonText.SetActive(true);
+            GameObjectManager.Instance.DisableLocalPlayerMovement();
+        }
+        else
+        {
+            Debug.Log("Player with " + newWinnerPlayerId + " id won the game.");
+            //TODO: add popup 
+            GameObjectManager.Instance.GameOverText.SetActive(true);
+            GameObjectManager.Instance.DisableLocalPlayerMovement();
+        }
     }
 }

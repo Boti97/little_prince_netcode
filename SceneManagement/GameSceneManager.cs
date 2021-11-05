@@ -258,6 +258,22 @@ public class GameSceneManager : NetworkBehaviour
                 objective.SpawnWithOwnership(NetworkManager.Singleton.LocalClientId);
             });
 
+        GameObjectManager.Instance.Planets
+            .Where(planet => planet.GetComponent<NetworkObject>().NetworkObjectId == planetIdToSkip)
+            .ToList()
+            .ForEach(planet =>
+            {
+                var planetPosition = planet.transform.position;
+
+                for (var i = 0; i < 30; i++)
+                {
+                    var objectiveSpawnPos = planetPosition;
+                    objectiveSpawnPos.y += 35;
+                    var objective = Instantiate(objectivePrefab, objectiveSpawnPos, Quaternion.identity);
+                    objective.SpawnWithOwnership(NetworkManager.Singleton.LocalClientId);
+                }
+            });
+
         GameObjectManager.Instance.RefreshEnemies();
     }
 
