@@ -3,6 +3,7 @@ using UnityEngine;
 
 public abstract class CharacterBehaviour : NetworkBehaviour
 {
+    private const float TurnSmoothTime = 8f;
     [HideInInspector] public ulong planetId;
 
     [SerializeField] protected float thrustPower = 50f;
@@ -10,8 +11,6 @@ public abstract class CharacterBehaviour : NetworkBehaviour
     [SerializeField] protected float walkSpeed = 10f;
     [SerializeField] protected float jumpForce = 2200f;
     [SerializeField] protected LayerMask groundedMask;
-
-    private const float TurnSmoothTime = 8f;
     private Animator animator;
     private CharacterNetworkState characterNetworkState;
     protected Vector3 finalDir;
@@ -74,11 +73,32 @@ public abstract class CharacterBehaviour : NetworkBehaviour
 
             isMoving = true;
         }
+        else if (GetComponent<Rigidbody>().velocity.magnitude > 0.5)
+        {
+            if (!isMoving)
+            {
+                var movingDirection = Vector3.ProjectOnPlane(
+                    GetComponent<Rigidbody>().velocity.normalized,
+                    transform.up).normalized;
+
+                var targetRotation = Quaternion.LookRotation(movingDirection, transform.up);
+                var rotation = model.rotation;
+                rotation = Quaternion.Slerp(rotation, targetRotation,
+                    TurnSmoothTime * NetworkManager.Singleton.ServerTime.FixedDeltaTime);
+                model.rotation = rotation;
+            }
+        }
         else
+
         {
             SetAnimation("isWalking", 0);
 
             isMoving = false;
+        }
+
+        if (characterNetworkState.IsRotationChanged(model.rotation))
+        {
+            characterNetworkState.SetModelRotationServerRpc(model.rotation);
         }
     }
 
@@ -121,7 +141,7 @@ public abstract class CharacterBehaviour : NetworkBehaviour
 
     private void CheckOnGround()
     {
-        Ray ray = new Ray(transform.position, -transform.up);
+        var ray = new Ray(transform.position, -transform.up);
         if (Physics.Raycast(ray, out _, 2 + .1f, groundedMask))
         {
             if (!isJumping && !isMoving)

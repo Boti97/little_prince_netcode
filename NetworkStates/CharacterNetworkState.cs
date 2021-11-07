@@ -13,7 +13,7 @@ public class CharacterNetworkState : NetworkBehaviour
     private readonly NetworkVariable<int> isJumped = new NetworkVariable<int>();
     private readonly NetworkVariable<int> isWalking = new NetworkVariable<int>();
     private readonly NetworkVariable<Quaternion> modelRotation = new NetworkVariable<Quaternion>();
-    
+
     private Animator animator;
 
     private Transform model;
@@ -60,6 +60,13 @@ public class CharacterNetworkState : NetworkBehaviour
             return;
         }
 
+        if (modelRotation.Value.eulerAngles.Equals(rotation.eulerAngles))
+        {
+            Debug.LogWarning(
+                "Rotation change dismissed, since change it is equals to last recorded rotation.");
+            return;
+        }
+
         modelRotation.Value = rotation;
     }
 
@@ -87,6 +94,11 @@ public class CharacterNetworkState : NetworkBehaviour
                 Debug.LogWarning("Unknown animation set requested. Name: " + nameOfAnimation);
                 break;
         }
+    }
+
+    public bool IsRotationChanged(Quaternion newRotation)
+    {
+        return !modelRotation.Value.eulerAngles.Equals(newRotation.eulerAngles);
     }
 
     private void OnModelRotationChanged(Quaternion oldModelRotation, Quaternion newModelRotation)
