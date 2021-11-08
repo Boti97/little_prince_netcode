@@ -8,4 +8,5 @@ public static class SceneLoadData
 
     public static JoinMode chosenJoinMode;
     public static string ReasonForSceneLoad { get; set; }
+    public static string Username { get; set; }
 }

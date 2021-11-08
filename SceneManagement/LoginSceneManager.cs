@@ -34,7 +34,9 @@ public class LoginSceneManager : MonoBehaviour
 
         SetActivities();
 
-        if (PlayerPrefs.HasKey("USERNAME") && PlayerPrefs.HasKey("PASSWORD"))
+        if (PlayerPrefs.HasKey("USERNAME")
+            && PlayerPrefs.HasKey("PASSWORD")
+            && SceneLoadData.ReasonForSceneLoad != "Logout")
         {
             isAutomaticLogin = true;
             var request = new LoginWithPlayFabRequest
@@ -44,6 +46,8 @@ public class LoginSceneManager : MonoBehaviour
             };
             PlayFabClientAPI.LoginWithPlayFab(request, OnLoginSuccess, OnLoginFailure);
         }
+
+        SceneLoadData.ReasonForSceneLoad = "";
     }
 
     public void OnValueChangeForInputFields()
@@ -96,6 +100,11 @@ public class LoginSceneManager : MonoBehaviour
         SetActivities();
     }
 
+    public void OnClickExitGame()
+    {
+        Application.Quit();
+    }
+
     private void SetActivities()
     {
         registerButton.SetActive(isRegistering);
@@ -137,6 +146,12 @@ public class LoginSceneManager : MonoBehaviour
         {
             PlayerPrefs.SetString("USERNAME", usernameText);
             PlayerPrefs.SetString("PASSWORD", passwordText);
+
+            SceneLoadData.Username = usernameText;
+        }
+        else
+        {
+            SceneLoadData.Username = PlayerPrefs.GetString("USERNAME");
         }
 
         isAutomaticLogin = false;
@@ -190,6 +205,21 @@ public class LoginSceneManager : MonoBehaviour
     private void OnRegisterFailure(PlayFabError error)
     {
         Debug.LogWarning("Registering was not successful!");
-        StartCoroutine(PopUpEvent(error.ErrorMessage));
+        if (error.ErrorDetails.ContainsKey("Email"))
+        {
+            StartCoroutine(PopUpEvent(error.ErrorDetails["Email"][0]));
+        }
+        else if (error.ErrorDetails.ContainsKey("Username"))
+        {
+            StartCoroutine(PopUpEvent(error.ErrorDetails["Username"][0]));
+        }
+        else if (error.ErrorDetails.ContainsKey("Password"))
+        {
+            StartCoroutine(PopUpEvent(error.ErrorDetails["Password"][0]));
+        }
+        else
+        {
+            StartCoroutine(PopUpEvent(error.ErrorMessage));
+        }
     }
 }

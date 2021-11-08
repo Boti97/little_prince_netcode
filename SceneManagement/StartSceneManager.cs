@@ -37,8 +37,10 @@ public class StartSceneManager : MonoBehaviour
         {
             StartCoroutine(PopUpEvent(SceneLoadData.ReasonForSceneLoad));
         }
-        
+
         Destroy(GameObject.FindWithTag("NetworkManager"));
+
+        GameObject.FindWithTag("PlayerNameText").GetComponent<TMP_Text>().text = SceneLoadData.Username;
     }
 
     private IEnumerator PopUpEvent(string message)
@@ -99,6 +101,12 @@ public class StartSceneManager : MonoBehaviour
         GameObject.FindWithTag("NewRoomNameInputField").GetComponent<TMP_InputField>().text = "";
         hostOnlineGamePanel.SetActive(false);
         mainMenuPanel.SetActive(true);
+    }
+
+    public void OnClickLogout()
+    {
+        SceneLoadData.ReasonForSceneLoad = "Logout";
+        SceneManager.LoadScene("Login");
     }
 
     public void OnValueChangeForNewRoomNameInputFieldText()
