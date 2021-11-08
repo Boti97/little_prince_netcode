@@ -54,17 +54,17 @@ public class StartSceneManager : MonoBehaviour
 
     public void OnClickHost()
     {
-        hostIsCreating = true;
-        GameObject.Find("HostButton").GetComponent<Button>().interactable = false;
-        GameObject.Find("BackButton").GetComponent<Button>().interactable = false;
-        GameObject.FindWithTag("NewRoomNameInputField").GetComponent<TMP_InputField>().interactable = false;
         SceneLoadData.chosenJoinMode = SceneLoadData.JoinMode.Host;
+        SceneLoadData.IPAddress = GameObject.FindWithTag("IPAddressInputField").GetComponent<TMP_InputField>().text;
+        SceneLoadData.Port = int.Parse(GameObject.FindWithTag("PortInputField").GetComponent<TMP_InputField>().text);
         SceneManager.LoadScene("Game");
     }
 
     public void OnClickJoin()
     {
         SceneLoadData.chosenJoinMode = SceneLoadData.JoinMode.Client;
+        SceneLoadData.IPAddress = GameObject.FindWithTag("IPAddressInputField").GetComponent<TMP_InputField>().text;
+        SceneLoadData.Port = int.Parse(GameObject.FindWithTag("PortInputField").GetComponent<TMP_InputField>().text);
         SceneManager.LoadScene("Game");
     }
 
@@ -82,12 +82,18 @@ public class StartSceneManager : MonoBehaviour
     {
         joinOnlineGamePanel.SetActive(true);
         mainMenuPanel.SetActive(false);
+
+        GameObject.FindWithTag("IPAddressInputField").GetComponent<TMP_InputField>().text = "127.0.0.1";
+        GameObject.FindWithTag("PortInputField").GetComponent<TMP_InputField>().text = "9998";
     }
 
     public void OnClickHostOnlineGame()
     {
         hostOnlineGamePanel.SetActive(true);
         mainMenuPanel.SetActive(false);
+
+        GameObject.FindWithTag("IPAddressInputField").GetComponent<TMP_InputField>().text = "127.0.0.1";
+        GameObject.FindWithTag("PortInputField").GetComponent<TMP_InputField>().text = "9998";
     }
 
     public void OnClickBackFromJoin()
@@ -98,7 +104,6 @@ public class StartSceneManager : MonoBehaviour
 
     public void OnClickBackFromHost()
     {
-        GameObject.FindWithTag("NewRoomNameInputField").GetComponent<TMP_InputField>().text = "";
         hostOnlineGamePanel.SetActive(false);
         mainMenuPanel.SetActive(true);
     }
@@ -109,16 +114,37 @@ public class StartSceneManager : MonoBehaviour
         SceneManager.LoadScene("Login");
     }
 
-    public void OnValueChangeForNewRoomNameInputFieldText()
+    public void OnValueChangeForHostInputFields()
     {
-        var nameOfRoom = GameObject.FindWithTag("NewRoomNameInputField").GetComponent<TMP_InputField>().text;
-        if (nameOfRoom != null && !nameOfRoom.Equals("") && !hostIsCreating)
+        var ipAddress = GameObject.FindWithTag("IPAddressInputField").GetComponent<TMP_InputField>().text;
+        var port = GameObject.FindWithTag("PortInputField").GetComponent<TMP_InputField>().text;
+        if (ipAddress != null
+            && !ipAddress.Equals("")
+            && port != null
+            && !port.Equals(""))
         {
             GameObject.Find("HostButton").GetComponent<Button>().interactable = true;
         }
         else
         {
             GameObject.Find("HostButton").GetComponent<Button>().interactable = false;
+        }
+    }
+
+    public void OnValueChangeForJoinInputFields()
+    {
+        var ipAddress = GameObject.FindWithTag("IPAddressInputField").GetComponent<TMP_InputField>().text;
+        var port = GameObject.FindWithTag("PortInputField").GetComponent<TMP_InputField>().text;
+        if (ipAddress != null
+            && !ipAddress.Equals("")
+            && port != null
+            && !port.Equals(""))
+        {
+            GameObject.Find("JoinButton").GetComponent<Button>().interactable = true;
+        }
+        else
+        {
+            GameObject.Find("JoinButton").GetComponent<Button>().interactable = false;
         }
     }
 }

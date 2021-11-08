@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Unity.Netcode;
+using Unity.Netcode.Transports.UNET;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using static SceneLoadData;
@@ -33,6 +34,17 @@ public class GameSceneManager : NetworkBehaviour
         //we don't want to see or do anything with the player until the room is set up
         GameObjectManager.Instance.DisableLocalPlayer();
         GameObjectManager.Instance.DisableUnnecessaryPlayerUIObjects();
+
+        if (!IsPortAvailable(Port))
+        {
+            ReasonForSceneLoad = "Port is already in use.";
+            SceneManager.LoadScene("Start");
+        }
+
+        var unetTransport = NetworkManager.Singleton.gameObject.GetComponent<UNetTransport>();
+        unetTransport.ConnectAddress = IPAddress;
+        unetTransport.ServerListenPort = Port;
+        unetTransport.ConnectPort = Port;
 
         if (chosenJoinMode.Equals(JoinMode.Host))
         {
@@ -107,6 +119,12 @@ public class GameSceneManager : NetworkBehaviour
                 Debug.Log("Room is alive.");
             }
         }
+    }
+
+    private bool IsPortAvailable(int port)
+    {
+        //TODO: port availability check implementation needed
+        return true;
     }
 
     //----------------------------------- CALLBACK METHODS -----------------------------------
@@ -256,22 +274,6 @@ public class GameSceneManager : NetworkBehaviour
                 objectiveSpawnPos.x += 35;
                 var objective = Instantiate(objectivePrefab, objectiveSpawnPos, Quaternion.identity);
                 objective.SpawnWithOwnership(NetworkManager.Singleton.LocalClientId);
-            });
-
-        GameObjectManager.Instance.Planets
-            .Where(planet => planet.GetComponent<NetworkObject>().NetworkObjectId == planetIdToSkip)
-            .ToList()
-            .ForEach(planet =>
-            {
-                var planetPosition = planet.transform.position;
-
-                for (var i = 0; i < 30; i++)
-                {
-                    var objectiveSpawnPos = planetPosition;
-                    objectiveSpawnPos.y += 35;
-                    var objective = Instantiate(objectivePrefab, objectiveSpawnPos, Quaternion.identity);
-                    objective.SpawnWithOwnership(NetworkManager.Singleton.LocalClientId);
-                }
             });
 
         GameObjectManager.Instance.RefreshEnemies();
