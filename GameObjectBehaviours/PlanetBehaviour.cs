@@ -3,17 +3,16 @@ using UnityEngine;
 
 public class PlanetBehaviour : NetworkBehaviour
 {
-    private const float RotationSpeed = 0f;
     [SerializeField] private Vector3 orbitCenter = Vector3.zero;
     private Vector3 selfRotationAxis = Vector3.up;
-    private float selfRotationSpeed = 0f;
+    private float selfRotationSpeed;
 
     private void Update()
     {
         if (!IsOwner) return;
 
         transform.RotateAround(orbitCenter, Vector3.up,
-            RotationSpeed * NetworkManager.Singleton.ServerTime.FixedDeltaTime);
+            GameObjectManager.Instance.rotationSpeed * NetworkManager.Singleton.ServerTime.FixedDeltaTime);
         transform.RotateAround(transform.position, selfRotationAxis,
             selfRotationSpeed * NetworkManager.Singleton.ServerTime.FixedDeltaTime);
     }
@@ -23,7 +22,7 @@ public class PlanetBehaviour : NetworkBehaviour
     {
         if (!IsOwner) return;
 
-        selfRotationSpeed = Random.Range(0.0f, selfRotationSpeed);
+        selfRotationSpeed = Random.Range(0.0f, GameObjectManager.Instance.selfRotationSpeed);
         selfRotationAxis = VectorExtensions.RandomAxis();
     }
 }

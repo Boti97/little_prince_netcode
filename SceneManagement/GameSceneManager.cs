@@ -248,7 +248,7 @@ public class GameSceneManager : NetworkBehaviour
         spawnPos.x += 35;
 
         player.transform.position = spawnPos;
-        
+
         return randomPlanetIndex;
     }
 

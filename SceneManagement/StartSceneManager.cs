@@ -55,17 +55,30 @@ public class StartSceneManager : MonoBehaviour
     public void OnClickHost()
     {
         SceneLoadData.chosenJoinMode = SceneLoadData.JoinMode.Host;
+        SceneLoadData.chosenGameMode = SceneLoadData.GameMode.Multi;
+
         SceneLoadData.IPAddress = GameObject.FindWithTag("IPAddressInputField").GetComponent<TMP_InputField>().text;
         SceneLoadData.Port = int.Parse(GameObject.FindWithTag("PortInputField").GetComponent<TMP_InputField>().text);
-        SceneManager.LoadScene("Game");
+        SceneManager.LoadScene("MultiplayerGame");
     }
 
     public void OnClickJoin()
     {
         SceneLoadData.chosenJoinMode = SceneLoadData.JoinMode.Client;
+        SceneLoadData.chosenGameMode = SceneLoadData.GameMode.Multi;
         SceneLoadData.IPAddress = GameObject.FindWithTag("IPAddressInputField").GetComponent<TMP_InputField>().text;
         SceneLoadData.Port = int.Parse(GameObject.FindWithTag("PortInputField").GetComponent<TMP_InputField>().text);
-        SceneManager.LoadScene("Game");
+        SceneManager.LoadScene("MultiplayerGame");
+    }
+
+    public void OnClickSinglePlay()
+    {
+        SceneLoadData.chosenJoinMode = SceneLoadData.JoinMode.Host;
+        SceneLoadData.chosenGameMode = SceneLoadData.GameMode.Single;
+
+        SceneLoadData.IPAddress = "127.0.0.1";
+        SceneLoadData.Port = 7777;
+        SceneManager.LoadScene("SingleplayerGame");
     }
 
     public void OnClickExit()

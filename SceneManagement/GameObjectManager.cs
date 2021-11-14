@@ -12,6 +12,9 @@ public sealed class GameObjectManager : MonoBehaviour
     private static GameObjectManager _instance;
     [SerializeField] private NetworkObject headstonePrefab;
 
+    public float selfRotationSpeed = 0f;
+    public float rotationSpeed = 0f;
+
     public Slider StaminaBar { get; private set; }
     public Slider HealthBar { get; private set; }
     public Slider ThrustBar { get; private set; }

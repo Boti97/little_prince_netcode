@@ -1,5 +1,11 @@
 public static class SceneLoadData
 {
+    public enum GameMode
+    {
+        Multi,
+        Single
+    }
+
     public enum JoinMode
     {
         Host,
@@ -7,6 +13,8 @@ public static class SceneLoadData
     }
 
     public static JoinMode chosenJoinMode;
+
+    public static GameMode chosenGameMode;
     public static string ReasonForSceneLoad { get; set; }
     public static string Username { get; set; }
     public static string IPAddress { get; set; }

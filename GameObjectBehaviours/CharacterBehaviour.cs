@@ -63,9 +63,13 @@ public abstract class CharacterBehaviour : NetworkBehaviour
                 SetAnimation("isWalking", 1);
             }
 
-            /*deltaParentPos = parent.position - previousParentPos;
-            previousParentPos = parent.position;*/
-            SetParentServerRpc(ulong.MaxValue);
+            if (SceneLoadData.chosenGameMode.Equals(SceneLoadData.GameMode.Single))
+            {
+                deltaParentPos = parent.position - previousParentPos;
+                previousParentPos = parent.position;
+
+                SetParentServerRpc(ulong.MaxValue);
+            }
 
             var targetRotation = Quaternion.LookRotation(finalDir, transform.up);
             var rotation = model.rotation;
@@ -159,7 +163,10 @@ public abstract class CharacterBehaviour : NetworkBehaviour
                 SetAnimation("isGrounded", 1);
                 SetAnimation("isJumped", 0);
 
-                SetParentServerRpc(hit.transform.gameObject.GetComponentInParent<NetworkObject>().NetworkObjectId);
+                if (SceneLoadData.chosenGameMode.Equals(SceneLoadData.GameMode.Single))
+                {
+                    SetParentServerRpc(hit.transform.gameObject.GetComponentInParent<NetworkObject>().NetworkObjectId);
+                }
 
                 parent = hit.transform;
             }
