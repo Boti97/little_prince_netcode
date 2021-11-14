@@ -257,6 +257,11 @@ public sealed class GameObjectManager : MonoBehaviour
         return planetPositions;
     }
 
+    public bool IsPlanetExistById(ulong planetId)
+    {
+        return Planets.Find(planet => planet.GetComponent<NetworkObject>().NetworkObjectId == planetId) != null;
+    }
+
     //----------------------------------- OTHER METHODS -----------------------------------
     public bool IsGameOver()
     {

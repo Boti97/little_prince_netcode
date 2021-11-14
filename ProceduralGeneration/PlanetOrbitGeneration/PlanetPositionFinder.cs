@@ -58,6 +58,6 @@ public class PlanetPositionFinder
     private static float GetDistance(float radius, Vector3 circleCenter, Vector3 point)
     {
         return Mathf.Abs(Mathf.Sqrt((point.x - circleCenter.x) * (point.x - circleCenter.x) +
-                                    (point.y - circleCenter.y) * (point.y - circleCenter.y)) - radius);
+                                    (point.z - circleCenter.z) * (point.z - circleCenter.z)) - radius);
     }
 }

@@ -156,7 +156,6 @@ public class LoginSceneManager : MonoBehaviour
 
         isAutomaticLogin = false;
 
-        //TODO: check result
         SceneManager.LoadScene("Start");
     }
 

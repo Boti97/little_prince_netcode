@@ -19,6 +19,7 @@ public class RoomNetworkState : NetworkBehaviour
     private List<ulong> playerIds = new List<ulong>();
     public int RoomSeed => roomSeed.Value;
     public bool IsRoomLive => isRoomLive.Value;
+    public bool IsRoomStarted => isRoomStarted.Value;
 
     public override void OnNetworkSpawn()
     {

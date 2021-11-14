@@ -69,7 +69,7 @@ public class PlanetPositionGenerator : MonoBehaviour
         {
             var point = BaseFunctionValueGenerator.BaseFunction(baseCircleRadius, angle * i);
             var noise = NoiseGenerator.GenerateNoise(point.X, point.Y, noiseAmplitude, noiseRoughness, noiseSeed);
-            functionView.SetPosition(i, new Vector3(point.X, point.Y, 0f) * noise);
+            functionView.SetPosition(i, new Vector3(point.X, 0f, point.Y) * noise);
         }
     }
 

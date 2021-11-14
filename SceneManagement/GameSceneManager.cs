@@ -179,7 +179,6 @@ public class GameSceneManager : NetworkBehaviour
 
         RoomInfoManager.Instance.RoomNetworkState.ReportPlayerJoinedServerRpc(GameObjectManager.Instance
             .GetLocalPlayerId());
-        //RoomInfoManager.Instance.ReportJoinedPlayer(GameObjectManager.Instance.GetLocalPlayerId());
 
         SpawnEnemiesAndObjectives(playerLocation);
     }
@@ -243,16 +242,13 @@ public class GameSceneManager : NetworkBehaviour
         //var randomPlanetIndex = (ulong) Random.Range(minPlanetId, maxPlanetId);
         var randomPlanetIndex = minPlanetId;
 
-        //TODO: uncomment when enemies added
-        //GameObjectManager.Instance.RemoveEnemiesOnPlanet(GameObjectManager.Instance.Planets[randomPlanetIndex].GetComponentInChildren<PlanetNetworkState>().PlanetId);
-
         var spawnPos = GameObjectManager.Instance.Planets
             .Find(planet => planet.GetComponent<NetworkObject>().NetworkObjectId == randomPlanetIndex).transform
             .position;
         spawnPos.x += 35;
 
         player.transform.position = spawnPos;
-
+        
         return randomPlanetIndex;
     }
 

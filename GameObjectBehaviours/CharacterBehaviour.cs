@@ -13,6 +13,7 @@ public abstract class CharacterBehaviour : NetworkBehaviour
     [SerializeField] protected LayerMask groundedMask;
     private Animator animator;
     private CharacterNetworkState characterNetworkState;
+    protected Vector3 deltaParentPos;
     protected Vector3 finalDir;
     protected GravityBody gravityBody;
     [Range(0f, 1f)] protected float health = 1f;
@@ -25,6 +26,8 @@ public abstract class CharacterBehaviour : NetworkBehaviour
     protected Vector3 moveDir;
     protected float moveSpeed = 8f;
     protected int numberOfJumps = 0;
+    protected Transform parent;
+    protected Vector3 previousParentPos;
     protected float stamina = 1f;
     protected float thrust = 1f;
 
@@ -60,13 +63,17 @@ public abstract class CharacterBehaviour : NetworkBehaviour
                 SetAnimation("isWalking", 1);
             }
 
+            /*deltaParentPos = parent.position - previousParentPos;
+            previousParentPos = parent.position;*/
+            SetParentServerRpc(ulong.MaxValue);
+
             var targetRotation = Quaternion.LookRotation(finalDir, transform.up);
             var rotation = model.rotation;
             rotation = Quaternion.Slerp(rotation, targetRotation,
                 TurnSmoothTime * NetworkManager.Singleton.ServerTime.FixedDeltaTime);
             model.rotation = rotation;
             GetComponent<Rigidbody>()
-                .MovePosition(GetComponent<Rigidbody>().position +
+                .MovePosition(GetComponent<Rigidbody>().position + deltaParentPos +
                               (finalDir * moveSpeed) * NetworkManager.Singleton.ServerTime.FixedDeltaTime);
 
             characterNetworkState.SetModelRotationServerRpc(rotation);
@@ -142,7 +149,7 @@ public abstract class CharacterBehaviour : NetworkBehaviour
     private void CheckOnGround()
     {
         var ray = new Ray(transform.position, -transform.up);
-        if (Physics.Raycast(ray, out _, 2 + .1f, groundedMask))
+        if (Physics.Raycast(ray, out var hit, 2 + .1f, groundedMask))
         {
             if (!isJumping && !isMoving)
             {
@@ -151,19 +158,40 @@ public abstract class CharacterBehaviour : NetworkBehaviour
 
                 SetAnimation("isGrounded", 1);
                 SetAnimation("isJumped", 0);
+
+                SetParentServerRpc(hit.transform.gameObject.GetComponentInParent<NetworkObject>().NetworkObjectId);
+
+                parent = hit.transform;
             }
         }
     }
 
+    [ServerRpc]
+    private void SetParentServerRpc(ulong parentId)
+    {
+        if (ulong.MaxValue.Equals(parentId))
+        {
+            transform.parent = null;
+            return;
+        }
+
+        if (!GameObjectManager.Instance.IsPlanetExistById(parentId))
+        {
+            Debug.LogWarning("Planet with the given id does not exist.");
+            return;
+        }
+
+        transform.parent = GameObjectManager.Instance.GetPlanetById(parentId).transform;
+    }
+
     private void CheckPlanet()
     {
-        Ray ray = new Ray(transform.position, -transform.up);
-        if (Physics.Raycast(ray, out RaycastHit hit, 2 + .1f, groundedMask))
+        var ray = new Ray(transform.position, -transform.up);
+        if (!Physics.Raycast(ray, out var hit, 2 + .1f, groundedMask)) return;
+
+        if (hit.collider.gameObject.GetComponentInParent<NetworkObject>().NetworkObjectId != planetId)
         {
-            if (hit.collider.gameObject.GetComponentInParent<NetworkObject>().NetworkObjectId != planetId)
-            {
-                planetId = hit.collider.gameObject.GetComponentInParent<NetworkObject>().NetworkObjectId;
-            }
+            planetId = hit.collider.gameObject.GetComponentInParent<NetworkObject>().NetworkObjectId;
         }
     }
 }
